@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import random
+import traceback
 from pathlib import Path
 
 import numpy as np
@@ -12,7 +14,7 @@ from tensor_training_core.data.manifest.reader import read_manifest
 from tensor_training_core.interfaces.dto import RunContext
 from tensor_training_core.models.anchors import compute_iou, encode_box_to_anchor, load_anchor_array
 from tensor_training_core.models.factory import build_keras_detection_model
-from tensor_training_core.training.callbacks import build_training_progress_callback
+from tensor_training_core.training.callbacks import build_tensorboard_callback, build_training_progress_callback
 from tensor_training_core.utils.logging import get_logger
 from tensor_training_core.utils.paths import resolve_repo_path
 from tensor_training_core.utils.seed import seed_everything
@@ -276,105 +278,174 @@ def run_tensorflow_training(
     seed_everything(training_config.training.seed)
     tf.keras.utils.set_random_seed(training_config.training.seed)
     logger = get_logger("training")
-
-    image_size = tuple(model_config.model.image_size)
-    anchors = load_anchor_array(model_config)
-    max_detections = int(model_config.model.max_detections)
-    rows = apply_sample_limit(load_training_samples(manifest_path), training_config.training.max_samples)
-    if not rows:
-        raise ValueError("Training manifest is empty; cannot start TensorFlow training.")
-
-    inferred_num_classes = max(
-        int(annotation["category_id"])
-        for row in rows
-        for annotation in row["annotations"]
-    )
-    if inferred_num_classes > int(model_config.model.num_classes):
-        raise ValueError(
-            "Dataset contains more classes than the configured model supports: "
-            f"{inferred_num_classes} > {model_config.model.num_classes}"
-        )
-
-    model = build_keras_detection_model(model_config)
-    model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=training_config.training.learning_rate),
-        loss={
-            "class_output": tf.keras.losses.SparseCategoricalCrossentropy(),
-            "bbox_output": tf.keras.losses.Huber(),
-        },
-        metrics={"class_output": ["accuracy"]},
-    )
-
     checkpoint_dir = context.artifact_dir / "checkpoints"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     metrics_path = context.artifact_dir / "training_metrics.jsonl"
     summary_path = context.artifact_dir / "training_summary.json"
     checkpoint_path = checkpoint_dir / training_config.training.checkpoint_name
-    sequence = build_manifest_sequence(
-        tf,
-        rows,
-        image_size,
-        training_config.training.batch_size,
-        anchors,
-        model_config.model.anchor_match_iou_threshold,
-        training_config.training.seed,
-        training_config.training.augmentation,
-    )
-    progress_callback = build_training_progress_callback(
-        tf,
-        logger=logger,
-        total_epochs=training_config.training.epochs,
-    )
+    failure_summary_path = context.log_dir / "failure_summary.json"
+    tensorboard_dir = context.log_dir / "tensorboard"
 
-    logger.info(
-        "training_configuration manifest_path=%s record_count=%s batch_size=%s epochs=%s max_detections=%s augmentation_enabled=%s",
-        manifest_path,
-        len(rows),
-        training_config.training.batch_size,
-        training_config.training.epochs,
-        max_detections,
-        training_config.training.augmentation.enabled,
-    )
+    def write_failure_summary(exc: Exception, stage: str) -> None:
+        payload = {
+            "run_id": context.run_id,
+            "experiment_id": context.experiment_id,
+            "dataset_version": context.dataset_version,
+            "stage": stage,
+            "error_type": exc.__class__.__name__,
+            "error_message": str(exc),
+            "manifest_path": str(manifest_path),
+            "checkpoint_path": str(checkpoint_path),
+            "traceback": traceback.format_exc(),
+        }
+        failure_summary_path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+        logger.error("training_failed stage=%s failure_summary_path=%s error=%s", stage, failure_summary_path, exc)
 
-    history = model.fit(
-        sequence,
-        epochs=training_config.training.epochs,
-        verbose=0,
-        callbacks=[progress_callback],
-    )
-    model.save(checkpoint_path)
+    try:
+        image_size = tuple(model_config.model.image_size)
+        anchors = load_anchor_array(model_config)
+        max_detections = int(model_config.model.max_detections)
+        rows = apply_sample_limit(load_training_samples(manifest_path), training_config.training.max_samples)
+        if not rows:
+            raise ValueError("Training manifest is empty; cannot start TensorFlow training.")
 
-    with metrics_path.open("w", encoding="utf-8") as handle:
-        for epoch_idx in range(training_config.training.epochs):
-            metric = {
-                "epoch": epoch_idx + 1,
-                "loss": float(history.history["loss"][epoch_idx]),
-                "class_accuracy": float(history.history["class_output_accuracy"][epoch_idx]),
-                "record_count": int(len(rows)),
-                "backend": training_config.training.backend,
-                "model_name": model_config.model.name,
-                "max_detections": max_detections,
-            }
-            handle.write(json.dumps(metric, ensure_ascii=True) + "\n")
+        inferred_num_classes = max(
+            int(annotation["category_id"])
+            for row in rows
+            for annotation in row["annotations"]
+        )
+        if inferred_num_classes > int(model_config.model.num_classes):
+            raise ValueError(
+                "Dataset contains more classes than the configured model supports: "
+                f"{inferred_num_classes} > {model_config.model.num_classes}"
+            )
 
-    summary = {
-        "run_id": context.run_id,
-        "experiment_id": context.experiment_id,
-        "dataset_version": context.dataset_version,
-        "backend": training_config.training.backend,
-        "model_name": model_config.model.name,
-        "manifest_path": str(manifest_path),
-        "checkpoint_path": str(checkpoint_path),
-        "epochs": training_config.training.epochs,
-        "record_count": int(len(rows)),
-        "num_classes": int(model_config.model.num_classes),
-        "max_detections": max_detections,
-        "max_samples": training_config.training.max_samples,
-        "augmentation_enabled": training_config.training.augmentation.enabled,
-    }
-    summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
-    return {
-        "checkpoint_path": str(checkpoint_path),
-        "metrics_path": str(metrics_path),
-        "summary_path": str(summary_path),
-    }
+        resume_from_checkpoint = training_config.training.resume_from_checkpoint
+        resumed_from_checkpoint: str | None = None
+        pretrained_loaded_from: str | None = None
+
+        if resume_from_checkpoint:
+            resolved_resume_path = resolve_repo_path(resume_from_checkpoint)
+            if not resolved_resume_path.exists():
+                raise FileNotFoundError(f"Resume checkpoint does not exist: {resolved_resume_path}")
+            model = tf.keras.models.load_model(resolved_resume_path)
+            resumed_from_checkpoint = str(resolved_resume_path)
+            logger.info("training_resume_loaded checkpoint_path=%s", resolved_resume_path)
+        else:
+            model = build_keras_detection_model(model_config)
+            pretrained_checkpoint = model_config.model.pretrained_checkpoint.strip()
+            if pretrained_checkpoint and pretrained_checkpoint.lower() != "imagenet":
+                resolved_pretrained_path = resolve_repo_path(pretrained_checkpoint)
+                if not resolved_pretrained_path.exists():
+                    raise FileNotFoundError(f"Pretrained checkpoint does not exist: {resolved_pretrained_path}")
+                if resolved_pretrained_path.suffix == ".keras":
+                    pretrained_model = tf.keras.models.load_model(resolved_pretrained_path)
+                    model.set_weights(pretrained_model.get_weights())
+                else:
+                    model.load_weights(resolved_pretrained_path)
+                pretrained_loaded_from = str(resolved_pretrained_path)
+                logger.info("training_pretrained_loaded checkpoint_path=%s", resolved_pretrained_path)
+
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=training_config.training.learning_rate),
+            loss={
+                "class_output": tf.keras.losses.SparseCategoricalCrossentropy(),
+                "bbox_output": tf.keras.losses.Huber(),
+            },
+            metrics={"class_output": ["accuracy"]},
+        )
+
+        sequence = build_manifest_sequence(
+            tf,
+            rows,
+            image_size,
+            training_config.training.batch_size,
+            anchors,
+            model_config.model.anchor_match_iou_threshold,
+            training_config.training.seed,
+            training_config.training.augmentation,
+        )
+        progress_callback = build_training_progress_callback(
+            tf,
+            logger=logger,
+            total_epochs=training_config.training.epochs,
+        )
+        checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+            filepath=str(checkpoint_path),
+            save_weights_only=False,
+            save_best_only=False,
+            verbose=0,
+        )
+        callbacks = [progress_callback, checkpoint_callback]
+        tensorboard_active = False
+        if training_config.training.tensorboard_enabled and importlib.util.find_spec("tensorboard") is not None:
+            tensorboard_dir.mkdir(parents=True, exist_ok=True)
+            callbacks.append(build_tensorboard_callback(tf, str(tensorboard_dir)))
+            tensorboard_active = True
+        elif training_config.training.tensorboard_enabled:
+            logger.warning("tensorboard_unavailable tensorboard metrics logging will be skipped")
+
+        logger.info(
+            "training_configuration manifest_path=%s record_count=%s batch_size=%s epochs=%s max_detections=%s augmentation_enabled=%s tensorboard_enabled=%s resumed_from_checkpoint=%s pretrained_loaded_from=%s",
+            manifest_path,
+            len(rows),
+            training_config.training.batch_size,
+            training_config.training.epochs,
+            max_detections,
+            training_config.training.augmentation.enabled,
+            tensorboard_active,
+            resumed_from_checkpoint,
+            pretrained_loaded_from or model_config.model.pretrained_checkpoint or "",
+        )
+
+        history = model.fit(
+            sequence,
+            epochs=training_config.training.epochs,
+            verbose=0,
+            callbacks=callbacks,
+        )
+        model.save(checkpoint_path)
+
+        with metrics_path.open("w", encoding="utf-8") as handle:
+            for epoch_idx in range(training_config.training.epochs):
+                metric = {
+                    "epoch": epoch_idx + 1,
+                    "loss": float(history.history["loss"][epoch_idx]),
+                    "class_accuracy": float(history.history["class_output_accuracy"][epoch_idx]),
+                    "record_count": int(len(rows)),
+                    "backend": training_config.training.backend,
+                    "model_name": model_config.model.name,
+                    "max_detections": max_detections,
+                }
+                handle.write(json.dumps(metric, ensure_ascii=True) + "\n")
+
+        summary = {
+            "run_id": context.run_id,
+            "experiment_id": context.experiment_id,
+            "dataset_version": context.dataset_version,
+            "backend": training_config.training.backend,
+            "model_name": model_config.model.name,
+            "manifest_path": str(manifest_path),
+            "checkpoint_path": str(checkpoint_path),
+            "epochs": training_config.training.epochs,
+            "record_count": int(len(rows)),
+            "num_classes": int(model_config.model.num_classes),
+            "max_detections": max_detections,
+            "max_samples": training_config.training.max_samples,
+            "augmentation_enabled": training_config.training.augmentation.enabled,
+            "tensorboard_dir": str(tensorboard_dir) if tensorboard_active else "",
+            "resumed_from_checkpoint": resumed_from_checkpoint,
+            "pretrained_loaded_from": pretrained_loaded_from or model_config.model.pretrained_checkpoint or "",
+            "failure_summary_path": "",
+        }
+        summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+        return {
+            "checkpoint_path": str(checkpoint_path),
+            "metrics_path": str(metrics_path),
+            "summary_path": str(summary_path),
+            "tensorboard_dir": str(tensorboard_dir) if tensorboard_active else "",
+            "failure_summary_path": "",
+        }
+    except Exception as exc:
+        write_failure_summary(exc, stage="train")
+        raise

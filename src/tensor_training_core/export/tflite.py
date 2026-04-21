@@ -7,10 +7,11 @@ from PIL import Image
 
 from tensor_training_core.config.schema import DatasetConfig, ModelConfig
 from tensor_training_core.data.manifest.reader import read_manifest
+from tensor_training_core.export.labels import write_label_txt
 from tensor_training_core.export.metadata import build_export_metadata, write_json_file
 from tensor_training_core.interfaces.dto import RunContext
 from tensor_training_core.utils.logging import get_logger
-from tensor_training_core.utils.paths import get_latest_run_dir
+from tensor_training_core.utils.paths import get_latest_run_dir, resolve_repo_path
 
 
 def _representative_dataset(
@@ -68,11 +69,13 @@ def export_tflite_model(
     model = tf.keras.models.load_model(checkpoint_path)
     export_dir = context.artifact_dir / "export"
     export_dir.mkdir(parents=True, exist_ok=True)
+    label_txt_path = write_label_txt(export_dir / "label.txt", resolve_repo_path(dataset_config.dataset.label_map_output))
     logger.info(
-        "export_started checkpoint_path=%s export_dir=%s manifest_path=%s",
+        "export_started checkpoint_path=%s export_dir=%s manifest_path=%s label_txt_path=%s",
         checkpoint_path,
         export_dir,
         manifest_path,
+        label_txt_path,
     )
 
     quantized_outputs: dict[str, str] = {}
@@ -113,4 +116,5 @@ def export_tflite_model(
     logger.info("export_manifest_completed export_manifest_path=%s", export_manifest_path)
     quantized_outputs["checkpoint_path"] = str(checkpoint_path)
     quantized_outputs["export_manifest_path"] = str(export_manifest_path)
+    quantized_outputs["label_txt_path"] = str(label_txt_path)
     return quantized_outputs

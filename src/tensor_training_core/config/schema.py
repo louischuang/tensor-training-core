@@ -89,6 +89,8 @@ class TrainingSettings(BaseModel):
     experiment_name: str
     checkpoint_name: str
     max_samples: Optional[int] = None
+    resume_from_checkpoint: Optional[str] = None
+    tensorboard_enabled: bool = True
     augmentation: AugmentationSettings = AugmentationSettings()
 
 

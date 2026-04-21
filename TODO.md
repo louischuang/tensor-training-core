@@ -46,20 +46,20 @@
 - [x] Implement conversion from internal manifest to TFRecord or model-ready input format
 - [x] Prepare small COCO-format fixture dataset for tests
 - [x] Add dataset versioning strategy and dataset metadata manifest
-- [ ] Add annotation quality checks and data cleaning reports
+- [x] Add annotation quality checks and data cleaning reports
 
 ## Phase 6. MobileNet Training Baseline
 
 - [x] Add baseline model config for `ssd_mobilenet_v2_fpnlite_320x320`
 - [x] Implement model factory
-- [ ] Support pretrained checkpoint loading
+- [x] Support pretrained checkpoint loading
 - [x] Implement training runner
-- [ ] Add checkpointing and TensorBoard metrics logging
-- [ ] Add resume-training support
+- [x] Add checkpointing and TensorBoard metrics logging
+- [x] Add resume-training support
 - [x] Add baseline experiment config for macOS
 - [x] Add baseline experiment config for CUDA Docker
 - [x] Track experiment metadata for every training run
-- [ ] Write per-run training logs and failure summaries to `artifacts/logs/`
+- [x] Write per-run training logs and failure summaries to `artifacts/logs/`
 
 ## Phase 7. Evaluation
 
@@ -150,7 +150,7 @@
 - [x] Add unit tests for config parsing
 - [x] Add unit tests for COCO annotation conversion
 - [x] Add unit tests for internal manifest generation
-- [ ] Add unit tests for bounding box validation
+- [x] Add unit tests for bounding box validation
 - [ ] Add integration test for tiny COCO end-to-end pipeline
 - [ ] Add export smoke test
 - [ ] Add mobile bundle smoke test
@@ -192,7 +192,7 @@
 ### Must Add
 
 - [x] Add dataset versioning and experiment tracking for every training and export run
-- [ ] Add annotation quality checks and data cleaning reports
+- [x] Add annotation quality checks and data cleaning reports
 - [x] Add standardized inference preprocessing / postprocessing deployment spec
 - [x] Add representative dataset planning for int8 quantization
 - [ ] Add structured logging, job status, and failure observability

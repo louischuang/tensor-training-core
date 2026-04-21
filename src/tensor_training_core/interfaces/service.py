@@ -28,6 +28,14 @@ class TrainingService:
     """Phase-1 orchestration surface for the core Python modules."""
 
     @staticmethod
+    def _resolve_quality_report_path(dataset_config) -> Path:
+        metadata_path = resolve_repo_path(dataset_config.dataset.metadata_output)
+        stem = metadata_path.stem
+        if stem.endswith("_metadata"):
+            stem = stem[: -len("_metadata")]
+        return metadata_path.with_name(f"{stem}_quality_report.json")
+
+    @staticmethod
     def _resolve_train_manifest_path(dataset_config) -> Path:
         split_config = dataset_config.dataset.split
         if split_config is not None:
@@ -105,11 +113,17 @@ class TrainingService:
         manifest_path = resolve_repo_path(dataset_config.dataset.manifest_output)
         label_map_path = resolve_repo_path(dataset_config.dataset.label_map_output)
         metadata_path = resolve_repo_path(dataset_config.dataset.metadata_output)
+        quality_report_path = self._resolve_quality_report_path(dataset_config)
 
         write_manifest(records, manifest_path)
         label_map_path.parent.mkdir(parents=True, exist_ok=True)
         label_map = {str(item["id"]): item["name"] for item in coco.get("categories", [])}
         label_map_path.write_text(json.dumps(label_map, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+        quality_report_path.parent.mkdir(parents=True, exist_ok=True)
+        quality_report_path.write_text(
+            json.dumps(validation.quality_report, indent=2, ensure_ascii=True) + "\n",
+            encoding="utf-8",
+        )
         metadata = {
             "dataset_name": dataset_config.name,
             "dataset_root": str(dataset_root),
@@ -118,6 +132,7 @@ class TrainingService:
             "category_count": validation.category_count,
             "manifest_path": str(manifest_path),
             "label_map_path": str(label_map_path),
+            "quality_report_path": str(quality_report_path),
         }
 
         split_config = dataset_config.dataset.split
@@ -168,6 +183,14 @@ class TrainingService:
 
         metadata_path.parent.mkdir(parents=True, exist_ok=True)
         metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+        logger.info(
+            "dataset_quality_report_completed quality_report_path=%s out_of_bounds=%s duplicates=%s invalid_bbox=%s",
+            quality_report_path,
+            validation.quality_report["issues"]["out_of_bounds_annotation_count"],
+            validation.quality_report["issues"]["duplicate_annotation_count"],
+            validation.quality_report["issues"]["invalid_bbox_format_count"]
+            + validation.quality_report["issues"]["invalid_bbox_dimension_count"],
+        )
         logger.info("Prepared dataset manifest from config: %s", config_path)
         return OperationResult(
             "prepare_dataset",
@@ -177,6 +200,7 @@ class TrainingService:
                 "manifest_path": str(manifest_path),
                 "label_map_path": str(label_map_path),
                 "metadata_path": str(metadata_path),
+                "quality_report_path": str(quality_report_path),
                 "record_count": str(len(records)),
                 "train_manifest_path": str(self._resolve_train_manifest_path(dataset_config)),
                 "eval_manifest_path": str(self._resolve_eval_manifest_path(dataset_config)),

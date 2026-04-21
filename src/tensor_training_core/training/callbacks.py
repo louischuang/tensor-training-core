@@ -30,3 +30,15 @@ def build_training_progress_callback(
             logger.info("training_completed")
 
     return TrainingProgressCallback()
+
+
+def build_tensorboard_callback(
+    tf,
+    log_dir: str,
+):
+    return tf.keras.callbacks.TensorBoard(
+        log_dir=log_dir,
+        histogram_freq=0,
+        write_graph=False,
+        update_freq="epoch",
+    )

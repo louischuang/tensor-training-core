@@ -37,11 +37,14 @@ def build_keras_detection_model(model_config: ModelConfig):
     if spec.family != "mobilenet":
         raise ValueError(f"Unsupported model family: {spec.family}")
 
+    pretrained_checkpoint = model_config.model.pretrained_checkpoint.strip()
+    backbone_weights = "imagenet" if pretrained_checkpoint.lower() == "imagenet" else None
+
     inputs = tf.keras.Input(shape=(spec.image_size[1], spec.image_size[0], 3), name="image")
     backbone = tf.keras.applications.MobileNetV2(
         include_top=False,
         input_tensor=inputs,
-        weights=None,
+        weights=backbone_weights,
         alpha=1.0,
     )
     x = backbone.output
