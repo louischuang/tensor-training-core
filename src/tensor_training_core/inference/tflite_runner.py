@@ -10,6 +10,7 @@ from tensor_training_core.data.manifest.reader import read_manifest
 from tensor_training_core.inference.visualize import draw_detection_overlays
 from tensor_training_core.interfaces.dto import RunContext
 from tensor_training_core.models.anchors import decode_box_from_anchor, load_anchor_array
+from tensor_training_core.utils.logging import get_logger
 from tensor_training_core.utils.paths import get_latest_run_dir, resolve_repo_path
 
 
@@ -120,6 +121,7 @@ def verify_tflite_inference(
     except ModuleNotFoundError as exc:
         raise RuntimeError("TensorFlow is required to run TFLite inference verification.") from exc
 
+    logger = get_logger("inference")
     latest_export_run = get_latest_run_dir(
         experiment_id,
         required_relative_path="export/export_manifest.json",
@@ -137,6 +139,11 @@ def verify_tflite_inference(
         "sample_image_path": sample_record.image_path,
         "results": {},
     }
+    logger.info(
+        "inference_verification_started source_run_id=%s sample_image_path=%s",
+        latest_export_run.name,
+        sample_record.image_path,
+    )
     preview_dir = context.artifact_dir / "previews"
     preview_dir.mkdir(parents=True, exist_ok=True)
 
@@ -185,9 +192,16 @@ def verify_tflite_inference(
             "preview_path": str(preview_path),
             "raw_outputs": {key: value.tolist() for key, value in raw_outputs.items()},
         }
+        logger.info(
+            "inference_quantization_completed quantization=%s detection_count=%s preview_path=%s",
+            quantization,
+            len(detections),
+            preview_path,
+        )
 
     summary_path = context.artifact_dir / "tflite_inference_summary.json"
     summary_path.write_text(json.dumps(verification_summary, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+    logger.info("inference_verification_completed summary_path=%s", summary_path)
     return {
         "export_manifest_path": str(export_manifest_path),
         "summary_path": str(summary_path),

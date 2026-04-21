@@ -2,108 +2,108 @@
 
 ## Phase 1. Lock the Baseline
 
-- [ ] Confirm first baseline model as `ssd_mobilenet_v2_fpnlite_320x320`
-- [ ] Confirm first dataset input format as COCO
-- [ ] Confirm first deployment targets as iOS and Android with TensorFlow Lite
-- [ ] Confirm phase-1 export strategy as float32 or float16
+- [x] Confirm first baseline model as `ssd_mobilenet_v2_fpnlite_320x320`
+- [x] Confirm first dataset input format as COCO
+- [x] Confirm first deployment targets as iOS and Android with TensorFlow Lite
+- [x] Confirm phase-1 export strategy as float32 or float16
 
 ## Phase 2. Project Foundation
 
-- [ ] Create `README.md` with project overview, quick start, repo links, license notes, and phase separation
-- [ ] Create `pyproject.toml` and initialize Python package metadata
-- [ ] Create base directory structure under `src/`, `configs/`, `docker/`, `scripts/`, `tests/`, `data/`, and `artifacts/`
-- [ ] Add `.gitignore` for Python, TensorFlow artifacts, datasets, logs, and notebooks
-- [ ] Define initial structured logging format and shared run identifiers for Python module flows
-- [ ] Define standard log directory layout under `artifacts/logs/`
-- [ ] Define required initial log fields for dataset, training, and export flows
+- [x] Create `README.md` with project overview, quick start, repo links, license notes, and phase separation
+- [x] Create `pyproject.toml` and initialize Python package metadata
+- [x] Create base directory structure under `src/`, `configs/`, `docker/`, `scripts/`, `tests/`, `data/`, and `artifacts/`
+- [x] Add `.gitignore` for Python, TensorFlow artifacts, datasets, logs, and notebooks
+- [x] Define initial structured logging format and shared run identifiers for Python module flows
+- [x] Define standard log directory layout under `artifacts/logs/`
+- [x] Define required initial log fields for dataset, training, and export flows
 
 ## Phase 3. Environment Support
 
-- [ ] Create `requirements/base.txt`
-- [ ] Create `requirements/macos.txt` for Apple Silicon development
-- [ ] Create `requirements/cuda.txt` for x64 CUDA Docker training
-- [ ] Add `scripts/bootstrap_macos.sh`
-- [ ] Add `scripts/bootstrap_cuda.sh`
-- [ ] Create `docker/Dockerfile.cuda`
-- [ ] Create `docker/docker-compose.cuda.yml`
-- [ ] Add Docker entrypoint script
+- [x] Create `requirements/base.txt`
+- [x] Create `requirements/macos.txt` for Apple Silicon development
+- [x] Create `requirements/cuda.txt` for x64 CUDA Docker training
+- [x] Add `scripts/bootstrap_macos.sh`
+- [x] Add `scripts/bootstrap_cuda.sh`
+- [x] Create `docker/Dockerfile.cuda`
+- [x] Create `docker/docker-compose.cuda.yml`
+- [x] Add Docker entrypoint script
 
 ## Phase 4. Configuration System
 
-- [ ] Define YAML config structure for dataset, model, training, export, and mobile package settings
-- [ ] Implement config loader
-- [ ] Add config schema validation
-- [ ] Create sample configs under `configs/datasets/`, `configs/models/`, `configs/training/`, and `configs/experiments/`
-- [ ] Add config fields for dataset version, experiment id, and runtime metadata
+- [x] Define YAML config structure for dataset, model, training, export, and mobile package settings
+- [x] Implement config loader
+- [x] Add config schema validation
+- [x] Create sample configs under `configs/datasets/`, `configs/models/`, `configs/training/`, and `configs/experiments/`
+- [x] Add config fields for dataset version, experiment id, and runtime metadata
 
 ## Phase 5. COCO Import and Internal Manifest Pipeline
 
-- [ ] Define unified internal manifest schema
-- [ ] Implement COCO dataset validator
-- [ ] Implement COCO importer
-- [ ] Normalize COCO categories and annotations into internal manifest format
-- [ ] Implement train / val / test split utility
-- [ ] Implement conversion from internal manifest to TFRecord or model-ready input format
-- [ ] Prepare small COCO-format fixture dataset for tests
-- [ ] Add dataset versioning strategy and dataset metadata manifest
+- [x] Define unified internal manifest schema
+- [x] Implement COCO dataset validator
+- [x] Implement COCO importer
+- [x] Normalize COCO categories and annotations into internal manifest format
+- [x] Implement train / val / test split utility
+- [x] Implement conversion from internal manifest to TFRecord or model-ready input format
+- [x] Prepare small COCO-format fixture dataset for tests
+- [x] Add dataset versioning strategy and dataset metadata manifest
 - [ ] Add annotation quality checks and data cleaning reports
 
 ## Phase 6. MobileNet Training Baseline
 
-- [ ] Add baseline model config for `ssd_mobilenet_v2_fpnlite_320x320`
-- [ ] Implement model factory
+- [x] Add baseline model config for `ssd_mobilenet_v2_fpnlite_320x320`
+- [x] Implement model factory
 - [ ] Support pretrained checkpoint loading
-- [ ] Implement training runner
+- [x] Implement training runner
 - [ ] Add checkpointing and TensorBoard metrics logging
 - [ ] Add resume-training support
-- [ ] Add baseline experiment config for macOS
-- [ ] Add baseline experiment config for CUDA Docker
-- [ ] Track experiment metadata for every training run
+- [x] Add baseline experiment config for macOS
+- [x] Add baseline experiment config for CUDA Docker
+- [x] Track experiment metadata for every training run
 - [ ] Write per-run training logs and failure summaries to `artifacts/logs/`
 
 ## Phase 7. Evaluation
 
-- [ ] Implement validation pipeline
-- [ ] Add mAP / precision / recall metrics output
+- [x] Implement validation pipeline
+- [x] Add mAP / precision / recall metrics output
 - [ ] Generate sample prediction visualizations
 - [ ] Save evaluation reports to `artifacts/reports/`
 
 ## Phase 8. TensorFlow Lite Export
 
 - [ ] Implement SavedModel export
-- [ ] Implement `.tflite` conversion
-- [ ] Support float16 quantization
-- [ ] Evaluate whether int8 quantization is needed after the first working prototype
-- [ ] Generate label map and export metadata manifest
-- [ ] Add representative dataset planning for future int8 quantization
-- [ ] Track export metadata for every exported artifact
+- [x] Implement `.tflite` conversion
+- [x] Support float16 quantization
+- [x] Evaluate whether int8 quantization is needed after the first working prototype
+- [x] Generate label map and export metadata manifest
+- [x] Add representative dataset planning for future int8 quantization
+- [x] Track export metadata for every exported artifact
 - [ ] Write export logs and error summaries to `artifacts/logs/`
 
 ## Phase 9. Mobile Deployment Packaging
 
-- [ ] Create mobile asset bundle layout for iOS
-- [ ] Create mobile asset bundle layout for Android
-- [ ] Generate model metadata, labels, thresholds, and input spec documents for mobile apps
-- [ ] Add packaging functions for mobile deployment artifacts
+- [x] Create mobile asset bundle layout for iOS
+- [x] Create mobile asset bundle layout for Android
+- [x] Generate model metadata, labels, thresholds, and input spec documents for mobile apps
+- [x] Add packaging functions for mobile deployment artifacts
 - [ ] Document integration assumptions for iOS and Android apps
-- [ ] Emit standardized inference preprocessing / postprocessing deployment spec
+- [x] Emit standardized inference preprocessing / postprocessing deployment spec
 
 ## Phase 10. Inference Verification
 
-- [ ] Implement TFLite inference runner
-- [ ] Add sample-image smoke test for exported model
-- [ ] Validate model input / output tensor formats
+- [x] Implement TFLite inference runner
+- [x] Add sample-image smoke test for exported model
+- [x] Validate model input / output tensor formats
 - [ ] Verify exported bundle assumptions against iOS / Android integration expectations
-- [ ] Add simple visualization utility for detection output
+- [x] Add simple visualization utility for detection output
 
 ## Phase 11. Shared Service Layer For Phase 2
 
-- [ ] Create a shared application service layer for dataset, training, export, and artifact operations
-- [ ] Define typed request / response DTOs for future external interfaces
-- [ ] Add job-state abstraction for long-running training and export tasks
+- [x] Create a shared application service layer for dataset, training, export, and artifact operations
+- [x] Define typed request / response DTOs for future external interfaces
+- [x] Add job-state abstraction for long-running training and export tasks
 - [ ] Ensure future CLI, API, and agent integrations call the same orchestration layer
 - [ ] Add shared job status and failure summary model for observability
-- [ ] Add shared logging helpers so later interfaces extend the same structured log schema
+- [x] Add shared logging helpers so later interfaces extend the same structured log schema
 
 ## Phase 12. CLI and Scripts
 
@@ -147,9 +147,9 @@
 
 ## Phase 15. Testing
 
-- [ ] Add unit tests for config parsing
-- [ ] Add unit tests for COCO annotation conversion
-- [ ] Add unit tests for internal manifest generation
+- [x] Add unit tests for config parsing
+- [x] Add unit tests for COCO annotation conversion
+- [x] Add unit tests for internal manifest generation
 - [ ] Add unit tests for bounding box validation
 - [ ] Add integration test for tiny COCO end-to-end pipeline
 - [ ] Add export smoke test
@@ -172,13 +172,13 @@
 
 ## First End-to-End Milestone
 
-- [ ] Import one COCO-format dataset
-- [ ] Produce one normalized internal manifest
-- [ ] Train one MobileNet-based detector
-- [ ] Export one working `.tflite` model
-- [ ] Generate iOS and Android deployment bundles
-- [ ] Pass one inference smoke test on the exported model
-- [ ] Confirm the Python module workflow is complete before adding external interfaces
+- [x] Import one COCO-format dataset
+- [x] Produce one normalized internal manifest
+- [x] Train one MobileNet-based detector
+- [x] Export one working `.tflite` model
+- [x] Generate iOS and Android deployment bundles
+- [x] Pass one inference smoke test on the exported model
+- [x] Confirm the Python module workflow is complete before adding external interfaces
 
 ## Second Integration Milestone
 
@@ -191,10 +191,10 @@
 
 ### Must Add
 
-- [ ] Add dataset versioning and experiment tracking for every training and export run
+- [x] Add dataset versioning and experiment tracking for every training and export run
 - [ ] Add annotation quality checks and data cleaning reports
-- [ ] Add standardized inference preprocessing / postprocessing deployment spec
-- [ ] Add representative dataset planning for int8 quantization
+- [x] Add standardized inference preprocessing / postprocessing deployment spec
+- [x] Add representative dataset planning for int8 quantization
 - [ ] Add structured logging, job status, and failure observability
 - [ ] Add baseline CI checks for lint, unit tests, integration smoke tests, and Docker smoke tests
 

@@ -9,6 +9,7 @@ from tensor_training_core.config.schema import DatasetConfig, ModelConfig
 from tensor_training_core.data.manifest.reader import read_manifest
 from tensor_training_core.export.metadata import build_export_metadata, write_json_file
 from tensor_training_core.interfaces.dto import RunContext
+from tensor_training_core.utils.logging import get_logger
 from tensor_training_core.utils.paths import get_latest_run_dir
 
 
@@ -54,6 +55,7 @@ def export_tflite_model(
     except ModuleNotFoundError as exc:
         raise RuntimeError("TensorFlow is required to export a TFLite model.") from exc
 
+    logger = get_logger("export")
     latest_run_dir = get_latest_run_dir(
         experiment_id,
         required_relative_path="checkpoints/latest.keras",
@@ -66,6 +68,12 @@ def export_tflite_model(
     model = tf.keras.models.load_model(checkpoint_path)
     export_dir = context.artifact_dir / "export"
     export_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(
+        "export_started checkpoint_path=%s export_dir=%s manifest_path=%s",
+        checkpoint_path,
+        export_dir,
+        manifest_path,
+    )
 
     quantized_outputs: dict[str, str] = {}
     export_index: dict[str, object] = {
@@ -93,9 +101,16 @@ def export_tflite_model(
         }
         quantized_outputs[f"tflite_path_{quantization}"] = str(tflite_path)
         quantized_outputs[f"metadata_path_{quantization}"] = str(metadata_path)
+        logger.info(
+            "export_quantization_completed quantization=%s tflite_path=%s metadata_path=%s",
+            quantization,
+            tflite_path,
+            metadata_path,
+        )
 
     export_manifest_path = export_dir / "export_manifest.json"
     write_json_file(export_manifest_path, export_index)
+    logger.info("export_manifest_completed export_manifest_path=%s", export_manifest_path)
     quantized_outputs["checkpoint_path"] = str(checkpoint_path)
     quantized_outputs["export_manifest_path"] = str(export_manifest_path)
     return quantized_outputs

@@ -63,6 +63,7 @@ class TrainingService:
         context, dataset_config, _, _ = self._load_phase1_configs(config_path)
         initialize_run_logging(context.log_dir)
         logger = get_logger("dataset")
+        logger.info("dataset_import_started config_path=%s dataset_root=%s", config_path, dataset_config.dataset.dataset_root)
         validation = validate_coco_dataset(
             dataset_root=dataset_config.dataset.dataset_root,
             annotations=dataset_config.dataset.annotations,
@@ -86,6 +87,7 @@ class TrainingService:
         context, dataset_config, _, _ = self._load_phase1_configs(config_path)
         initialize_run_logging(context.log_dir)
         logger = get_logger("dataset")
+        logger.info("dataset_prepare_started config_path=%s dataset_root=%s", config_path, dataset_config.dataset.dataset_root)
         validation = validate_coco_dataset(
             dataset_root=dataset_config.dataset.dataset_root,
             annotations=dataset_config.dataset.annotations,
@@ -157,6 +159,12 @@ class TrainingService:
                 "test_record_count": sum(1 for record in records if record.image_path in split_image_paths["test"]),
                 "seed": split_config.seed,
             }
+            logger.info(
+                "dataset_split_completed train_images=%s val_images=%s test_images=%s",
+                len(split_image_paths["train"]),
+                len(split_image_paths["val"]),
+                len(split_image_paths["test"]),
+            )
 
         metadata_path.parent.mkdir(parents=True, exist_ok=True)
         metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
@@ -180,6 +188,7 @@ class TrainingService:
         initialize_run_logging(context.log_dir)
         logger = get_logger("training")
         manifest_path = self._resolve_train_manifest_path(dataset_config)
+        logger.info("training_service_started config_path=%s manifest_path=%s", config_path, manifest_path)
         if not manifest_path.exists():
             self.prepare_dataset(config_path)
         if training_config.training.backend == "smoke":
@@ -214,6 +223,7 @@ class TrainingService:
         context, dataset_config, model_config, training_config = self._load_phase1_configs(config_path)
         initialize_run_logging(context.log_dir)
         logger = get_logger("evaluation")
+        logger.info("evaluation_service_started config_path=%s manifest_path=%s", config_path, self._resolve_eval_manifest_path(dataset_config))
         outputs = evaluate_model(
             context=context,
             experiment_id=context.experiment_id,
@@ -228,6 +238,7 @@ class TrainingService:
         context, dataset_config, model_config, _ = self._load_phase1_configs(config_path)
         initialize_run_logging(context.log_dir)
         logger = get_logger("export")
+        logger.info("export_service_started config_path=%s", config_path)
         outputs = export_tflite_model(
             context=context,
             experiment_id=context.experiment_id,
@@ -241,6 +252,7 @@ class TrainingService:
         context, dataset_config, _, _ = self._load_phase1_configs(config_path)
         initialize_run_logging(context.log_dir)
         logger = get_logger("mobile")
+        logger.info("mobile_service_started config_path=%s", config_path)
         outputs = package_mobile_bundles(
             context=context,
             experiment_id=context.experiment_id,
@@ -258,6 +270,7 @@ class TrainingService:
         context, dataset_config, model_config, _ = self._load_phase1_configs(config_path)
         initialize_run_logging(context.log_dir)
         logger = get_logger("inference")
+        logger.info("inference_service_started config_path=%s", config_path)
         outputs = verify_tflite_inference(
             context=context,
             experiment_id=context.experiment_id,

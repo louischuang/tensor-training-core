@@ -11,6 +11,7 @@ from tensor_training_core.evaluation.reports import compute_detection_metrics, r
 from tensor_training_core.interfaces.dto import RunContext
 from tensor_training_core.models.anchors import decode_box_from_anchor, load_anchor_array
 from tensor_training_core.training.runner import apply_sample_limit, load_training_samples
+from tensor_training_core.utils.logging import get_logger
 from tensor_training_core.utils.paths import get_latest_run_dir, resolve_repo_path
 
 
@@ -77,6 +78,7 @@ def evaluate_model(
     except ModuleNotFoundError as exc:
         raise RuntimeError("TensorFlow is required to evaluate the trained model.") from exc
 
+    logger = get_logger("evaluation")
     latest_run_dir = get_latest_run_dir(
         experiment_id,
         required_relative_path="checkpoints/latest.keras",
@@ -89,6 +91,12 @@ def evaluate_model(
     rows = apply_sample_limit(load_training_samples(manifest_path), training_config.training.max_samples)
     if not rows:
         raise ValueError("Evaluation manifest is empty; cannot run evaluation.")
+    logger.info(
+        "evaluation_started manifest_path=%s record_count=%s checkpoint_path=%s",
+        manifest_path,
+        len(rows),
+        checkpoint_path,
+    )
 
     model = tf.keras.models.load_model(checkpoint_path)
     anchors = load_anchor_array(model_config)
@@ -105,6 +113,7 @@ def evaluate_model(
             nms_iou_threshold=model_config.model.nms_iou_threshold,
         )
         predictions_by_image[str(row["image_path"])] = predictions
+    logger.info("evaluation_predictions_completed image_count=%s", len(predictions_by_image))
 
     ground_truth_by_image = _build_ground_truth(rows)
     detection_metrics = compute_detection_metrics(
@@ -131,6 +140,12 @@ def evaluate_model(
         "recall_macro": detection_metrics["recall_macro"],
     }
     summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+    logger.info(
+        "evaluation_metrics_completed map50=%.6f precision_macro=%.6f recall_macro=%.6f",
+        detection_metrics["map50"],
+        detection_metrics["precision_macro"],
+        detection_metrics["recall_macro"],
+    )
     return {
         "checkpoint_path": str(checkpoint_path),
         "metrics_path": str(metrics_path),
