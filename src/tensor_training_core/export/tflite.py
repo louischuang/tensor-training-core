@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import traceback
 from pathlib import Path
@@ -44,7 +46,8 @@ def _convert_quantized_model(tf, model, quantization: str, manifest_path: str | 
         converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
         converter.inference_input_type = tf.uint8
         converter.inference_output_type = tf.uint8
-    return converter.convert()
+    with contextlib.redirect_stdout(io.StringIO()):
+        return converter.convert()
 
 
 def export_tflite_model(
@@ -90,7 +93,8 @@ def export_tflite_model(
         }
 
         saved_model_dir = export_dir / "saved_model"
-        tf.saved_model.save(model, str(saved_model_dir))
+        with contextlib.redirect_stdout(io.StringIO()):
+            tf.saved_model.save(model, str(saved_model_dir))
         export_index["saved_model_dir"] = str(saved_model_dir)
         quantized_outputs["saved_model_dir"] = str(saved_model_dir)
         logger.info("export_saved_model_completed saved_model_dir=%s", saved_model_dir)
