@@ -98,6 +98,42 @@ Most operation routes return:
 }
 ```
 
+## Common Error Codes
+
+### `404 Not Found`
+
+Returned by:
+
+- `GET /training/jobs/{job_id}`
+- `GET /artifacts/{job_id}`
+
+Example:
+
+```json
+{
+  "detail": "Job not found: job_missing"
+}
+```
+
+### `422 Unprocessable Entity`
+
+Returned when the request body does not match the required schema, most commonly when `config_path` is missing or malformed.
+
+Example:
+
+```json
+{
+  "detail": [
+    {
+      "type": "missing",
+      "loc": ["body", "config_path"],
+      "msg": "Field required",
+      "input": {}
+    }
+  ]
+}
+```
+
 ## Notes For Third-Party Integrators
 
 - Treat `job_id` as the stable lookup key for follow-up reads.
