@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from pathlib import Path
 
 from tensor_training_core.config.loader import (
@@ -66,6 +67,13 @@ class TrainingService:
             experiment_id=experiment_config.runtime.experiment_id,
             dataset_version=experiment_config.runtime.dataset_version,
         )
+        dataset_config = load_dataset_config(experiment_config.dataset.config_path)
+        model_config = load_model_config(experiment_config.model.config_path)
+        training_config = load_training_config(experiment_config.training.config_path)
+        return context, dataset_config, model_config, training_config
+
+    def _load_phase1_configs_with_context(self, config_path: str | Path, context: RunContext):
+        experiment_config = load_experiment_config(resolve_repo_path(config_path))
         dataset_config = load_dataset_config(experiment_config.dataset.config_path)
         model_config = load_model_config(experiment_config.model.config_path)
         training_config = load_training_config(experiment_config.training.config_path)
@@ -217,8 +225,11 @@ class TrainingService:
             },
         )
 
-    def train(self, config_path: str | Path) -> OperationResult:
-        context, dataset_config, model_config, training_config = self._load_phase1_configs(config_path)
+    def train(self, config_path: str | Path, context: RunContext | None = None) -> OperationResult:
+        if context is None:
+            context, dataset_config, model_config, training_config = self._load_phase1_configs(config_path)
+        else:
+            context, dataset_config, model_config, training_config = self._load_phase1_configs_with_context(config_path, context)
         initialize_run_logging(context.log_dir)
         logger = get_logger("training")
         manifest_path = self._resolve_train_manifest_path(dataset_config)
@@ -386,6 +397,36 @@ class TrainingService:
             self.job_store.write(job)
             raise
 
+    def start_training_job_async(self, config_path: str | Path) -> JobRecord:
+        context = self._prepare_context(config_path)
+        job = self.job_store.create(operation="train", config_path=str(config_path))
+        job.state = "running"
+        job.message = "Training job is running asynchronously."
+        job.outputs = {
+            "run_id": context.run_id,
+            "artifact_dir": str(context.artifact_dir),
+            "log_dir": str(context.log_dir),
+        }
+        self.job_store.write(job)
+
+        def worker() -> None:
+            try:
+                result = self.train(config_path, context=context)
+                job.state = "completed"
+                job.message = result.message
+                job.outputs = {**job.outputs, **result.outputs}
+                self.job_store.write(job)
+            except Exception as exc:
+                job.state = "failed"
+                job.message = str(exc)
+                failure_summary_path = Path(job.outputs.get("log_dir", "")) / "failure_summary.json"
+                if failure_summary_path.exists():
+                    job.failure_summary_path = str(failure_summary_path)
+                self.job_store.write(job)
+
+        threading.Thread(target=worker, daemon=True, name=f"training-job-{job.job_id}").start()
+        return job
+
     def get_job_status(self, job_id: str) -> JobRecord:
         return self.job_store.read(job_id)
 
@@ -400,4 +441,50 @@ class TrainingService:
             "path": str(artifact_path),
             "is_dir": artifact_path.is_dir(),
             "size_bytes": artifact_path.stat().st_size if artifact_path.is_file() else None,
+        }
+
+    def get_job_log_path(self, job_id: str) -> Path | None:
+        job = self.get_job_status(job_id)
+        log_dir = job.outputs.get("log_dir", "")
+        if not log_dir:
+            return None
+        return resolve_repo_path(Path(log_dir) / "application.jsonl")
+
+    def get_job_logs(self, job_id: str, limit: int = 200) -> dict[str, object]:
+        job = self.get_job_status(job_id)
+        log_path = self.get_job_log_path(job_id)
+        if log_path is None:
+            return {
+                "job_id": job.job_id,
+                "state": job.state,
+                "log_path": "",
+                "available": False,
+                "line_count": 0,
+                "lines": [],
+            }
+        if not log_path.exists():
+            return {
+                "job_id": job.job_id,
+                "state": job.state,
+                "log_path": str(log_path),
+                "available": False,
+                "line_count": 0,
+                "lines": [],
+            }
+
+        raw_lines = [line for line in log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        selected_lines = raw_lines[-limit:] if limit > 0 else raw_lines
+        parsed_lines = []
+        for line in selected_lines:
+            try:
+                parsed_lines.append(json.loads(line))
+            except json.JSONDecodeError:
+                parsed_lines.append({"raw": line})
+        return {
+            "job_id": job.job_id,
+            "state": job.state,
+            "log_path": str(log_path),
+            "available": True,
+            "line_count": len(raw_lines),
+            "lines": parsed_lines,
         }

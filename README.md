@@ -182,7 +182,10 @@ GET  /health
 POST /datasets/import/coco
 POST /datasets/prepare
 POST /training/jobs
+POST /training/jobs/async
 GET  /training/jobs/{job_id}
+GET  /training/jobs/{job_id}/logs
+GET  /training/jobs/{job_id}/logs/stream
 POST /exports/tflite
 POST /exports/mobile-bundle
 GET  /artifacts/{job_id}
@@ -214,6 +217,13 @@ Interactive API documentation:
 - ReDoc: `http://127.0.0.1:8000/redoc`
 - OpenAPI schema: `http://127.0.0.1:8000/openapi.json`
 - Repository guide: [API_DOCUMENTATION.md](/Users/louischuang/CompanyStorage/嵐奕科技有限公司/第四處 技術處/正在進行中的專案/20260421-MyOpenSource/tensor-training-core/API_DOCUMENTATION.md)
+
+For live training progress over HTTP, prefer:
+
+- `POST /training/jobs/async`
+- `GET /training/jobs/{job_id}`
+- `GET /training/jobs/{job_id}/logs`
+- `GET /training/jobs/{job_id}/logs/stream`
 
 ## Important Output Locations
 

@@ -62,8 +62,17 @@ Response:
 - `POST /training/jobs`
 - Purpose: run a training job using the provided config
 
+- `POST /training/jobs/async`
+- Purpose: start a background training job and immediately return `job_id`, `run_id`, and `log_dir`
+
 - `GET /training/jobs/{job_id}`
 - Purpose: read a stored training job record
+
+- `GET /training/jobs/{job_id}/logs`
+- Purpose: read the latest training log lines as JSON
+
+- `GET /training/jobs/{job_id}/logs/stream`
+- Purpose: stream training log updates through Server-Sent Events (SSE)
 
 ### Exports
 
@@ -140,4 +149,8 @@ Example:
 - Treat `outputs` as the authoritative source of generated file paths.
 - For API request tracing, provide an `x-request-id` header.
 - Request lifecycle events are stored in `artifacts/logs/api/requests.jsonl`.
-- The API is currently synchronous at the HTTP layer: long-running operations do not return until the job has completed.
+- `POST /training/jobs` is still synchronous and does not return until training completes.
+- For live progress, use `POST /training/jobs/async` and then call:
+  - `GET /training/jobs/{job_id}` for state polling
+  - `GET /training/jobs/{job_id}/logs` for snapshot reads
+  - `GET /training/jobs/{job_id}/logs/stream` for SSE-based log streaming

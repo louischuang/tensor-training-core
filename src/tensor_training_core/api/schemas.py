@@ -123,3 +123,45 @@ class ErrorResponse(BaseModel):
             ]
         }
     }
+
+
+class LogEntry(BaseModel):
+    level: str | None = None
+    logger: str | None = None
+    message: str | None = None
+    raw: str | None = None
+
+
+class JobLogsResponse(BaseModel):
+    job_id: str
+    state: str
+    log_path: str
+    available: bool
+    line_count: int
+    lines: list[dict[str, object]]
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "job_id": "job_8bb14a044cc8",
+                    "state": "running",
+                    "log_path": "/workspace/artifacts/logs/20260421T233523Z_9991da53/application.jsonl",
+                    "available": True,
+                    "line_count": 3,
+                    "lines": [
+                        {
+                            "level": "INFO",
+                            "logger": "training",
+                            "message": "training_started total_epochs=4 batch_size=8",
+                        },
+                        {
+                            "level": "INFO",
+                            "logger": "training",
+                            "message": "training_epoch_completed epoch=1/4 loss=1.92 class_output_accuracy=0.33",
+                        },
+                    ],
+                }
+            ]
+        }
+    }
