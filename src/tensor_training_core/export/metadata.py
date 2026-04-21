@@ -33,8 +33,8 @@ def build_export_metadata(
             "class_output": "per-anchor softmax probabilities with background class 0",
             "bbox_output": "per-anchor offsets relative to configured anchors",
             "nms": {
-                "score_threshold": 0.15,
-                "iou_threshold": 0.5,
+                "score_threshold": model_config.model.score_threshold,
+                "iou_threshold": model_config.model.nms_iou_threshold,
             },
         },
     }

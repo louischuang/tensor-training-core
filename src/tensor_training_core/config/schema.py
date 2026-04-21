@@ -30,11 +30,21 @@ class DatasetSettings(BaseModel):
     label_map_output: str
     manifest_output: str
     metadata_output: str
+    split: "DatasetSplitSettings | None" = None
 
 
 class DatasetConfig(BaseModel):
     name: str
     dataset: DatasetSettings
+
+
+class DatasetSplitSettings(BaseModel):
+    train_ratio: float = 0.8
+    val_ratio: float = 0.1
+    seed: int = 42
+    train_manifest_output: str
+    val_manifest_output: str
+    test_manifest_output: str
 
 
 class AnchorSpec(BaseModel):
@@ -51,11 +61,22 @@ class ModelSettings(BaseModel):
     num_classes: int
     max_detections: int = 5
     anchors: list[AnchorSpec]
+    anchor_match_iou_threshold: float = 0.1
+    score_threshold: float = 0.15
+    nms_iou_threshold: float = 0.5
     pretrained_checkpoint: str
 
 
 class ModelConfig(BaseModel):
     model: ModelSettings
+
+
+class AugmentationSettings(BaseModel):
+    enabled: bool = False
+    horizontal_flip_prob: float = 0.0
+    brightness_delta: float = 0.0
+    contrast_min: float = 1.0
+    contrast_max: float = 1.0
 
 
 class TrainingSettings(BaseModel):
@@ -68,6 +89,7 @@ class TrainingSettings(BaseModel):
     experiment_name: str
     checkpoint_name: str
     max_samples: Optional[int] = None
+    augmentation: AugmentationSettings = AugmentationSettings()
 
 
 class TrainingConfig(BaseModel):

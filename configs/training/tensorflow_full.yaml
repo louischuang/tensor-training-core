@@ -1,0 +1,15 @@
+training:
+  backend: tensorflow
+  seed: 42
+  batch_size: 16
+  epochs: 24
+  learning_rate: 0.0002
+  runtime: cuda
+  experiment_name: tensorflow_full
+  checkpoint_name: latest.keras
+  augmentation:
+    enabled: true
+    horizontal_flip_prob: 0.5
+    brightness_delta: 0.10
+    contrast_min: 0.85
+    contrast_max: 1.20

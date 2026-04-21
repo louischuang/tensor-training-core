@@ -7,3 +7,10 @@ dataset:
   label_map_output: data/manifests/esp32_cam_train_label_map.json
   manifest_output: data/manifests/esp32_cam_train.jsonl
   metadata_output: data/manifests/esp32_cam_train_metadata.json
+  split:
+    train_ratio: 0.8
+    val_ratio: 0.1
+    seed: 42
+    train_manifest_output: data/manifests/esp32_cam_train_split_train.jsonl
+    val_manifest_output: data/manifests/esp32_cam_train_split_val.jsonl
+    test_manifest_output: data/manifests/esp32_cam_train_split_test.jsonl

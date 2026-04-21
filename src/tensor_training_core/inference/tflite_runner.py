@@ -14,7 +14,7 @@ from tensor_training_core.utils.paths import get_latest_run_dir, resolve_repo_pa
 
 
 def _prepare_input_image(image_path: str | Path, image_size: tuple[int, int]) -> np.ndarray:
-    image = Image.open(image_path).convert("RGB")
+    image = Image.open(resolve_repo_path(image_path)).convert("RGB")
     image = image.resize(image_size)
     return np.asarray(image, dtype=np.float32) / 255.0
 
@@ -77,8 +77,8 @@ def _run_nms(
     box_offsets: np.ndarray,
     anchors: np.ndarray,
     label_map: dict[int, str],
-    score_threshold: float = 0.15,
-    iou_threshold: float = 0.5,
+    score_threshold: float,
+    iou_threshold: float,
 ) -> list[dict[str, object]]:
     candidates: list[dict[str, object]] = []
     for anchor_index, anchor_scores in enumerate(class_scores):
@@ -154,9 +154,23 @@ def verify_tflite_inference(
             for detail in output_details
         }
         class_scores, box_offsets = _extract_head_outputs(raw_outputs)
-        detections = _run_nms(class_scores, box_offsets, anchors, label_map)
+        detections = _run_nms(
+            class_scores,
+            box_offsets,
+            anchors,
+            label_map,
+            score_threshold=model_config.model.score_threshold,
+            iou_threshold=model_config.model.nms_iou_threshold,
+        )
         if not detections:
-            detections = _run_nms(class_scores, box_offsets, anchors, label_map, score_threshold=0.0)
+            detections = _run_nms(
+                class_scores,
+                box_offsets,
+                anchors,
+                label_map,
+                score_threshold=0.0,
+                iou_threshold=model_config.model.nms_iou_threshold,
+            )
             detections = detections[:1]
 
         preview_path = draw_detection_overlays(

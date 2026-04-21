@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from tensor_training_core.data.manifest.schema import ManifestRecord
+from tensor_training_core.utils.paths import to_repo_relative_path
 
 
 def convert_coco_dict_to_manifest_records(
@@ -24,7 +25,7 @@ def convert_coco_dict_to_manifest_records(
         records.append(
             ManifestRecord(
                 image_id=image["id"],
-                image_path=str(image_path),
+                image_path=to_repo_relative_path(image_path),
                 width=image["width"],
                 height=image["height"],
                 category_id=annotation["category_id"],

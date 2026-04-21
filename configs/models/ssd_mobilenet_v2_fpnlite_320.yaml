@@ -3,11 +3,17 @@ model:
   family: mobilenet
   image_size: [320, 320]
   num_classes: 5
-  max_detections: 5
+  max_detections: 8
   anchors:
-    - {cx: 0.20, cy: 0.20, w: 0.22, h: 0.22}
-    - {cx: 0.50, cy: 0.20, w: 0.28, h: 0.24}
-    - {cx: 0.50, cy: 0.50, w: 0.36, h: 0.36}
-    - {cx: 0.20, cy: 0.50, w: 0.24, h: 0.32}
-    - {cx: 0.75, cy: 0.55, w: 0.30, h: 0.30}
+    - {cx: 0.15, cy: 0.18, w: 0.08, h: 0.08}
+    - {cx: 0.45, cy: 0.18, w: 0.14, h: 0.10}
+    - {cx: 0.80, cy: 0.20, w: 0.24, h: 0.14}
+    - {cx: 0.18, cy: 0.50, w: 0.18, h: 0.24}
+    - {cx: 0.50, cy: 0.50, w: 0.30, h: 0.30}
+    - {cx: 0.82, cy: 0.52, w: 0.44, h: 0.30}
+    - {cx: 0.28, cy: 0.78, w: 0.26, h: 0.34}
+    - {cx: 0.62, cy: 0.78, w: 0.72, h: 0.54}
+  anchor_match_iou_threshold: 0.12
+  score_threshold: 0.20
+  nms_iou_threshold: 0.45
   pretrained_checkpoint: ""

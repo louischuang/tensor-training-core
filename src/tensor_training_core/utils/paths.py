@@ -25,6 +25,16 @@ def resolve_repo_path(path: str | Path) -> Path:
     return ROOT / candidate
 
 
+def to_repo_relative_path(path: str | Path) -> str:
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        return str(candidate)
+    try:
+        return str(candidate.relative_to(ROOT))
+    except ValueError:
+        return str(candidate)
+
+
 def ensure_run_context(experiment_id: str, dataset_version: str) -> RunContext:
     run_id = f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}_{uuid4().hex[:8]}"
     experiment_dir = ensure_directory(EXPERIMENTS_DIR / experiment_id)

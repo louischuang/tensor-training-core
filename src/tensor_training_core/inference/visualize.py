@@ -4,13 +4,15 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+from tensor_training_core.utils.paths import resolve_repo_path
+
 
 def draw_detection_overlays(
     image_path: str | Path,
     output_path: str | Path,
     detections: list[dict[str, object]],
 ) -> Path:
-    image = Image.open(image_path).convert("RGB")
+    image = Image.open(resolve_repo_path(image_path)).convert("RGB")
     width, height = image.size
     draw = ImageDraw.Draw(image)
     palette = [

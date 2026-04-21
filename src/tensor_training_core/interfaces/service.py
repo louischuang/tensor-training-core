@@ -11,6 +11,7 @@ from tensor_training_core.config.loader import (
 )
 from tensor_training_core.data.adapters.coco import load_coco_annotations
 from tensor_training_core.data.converters.coco_to_manifest import convert_coco_dict_to_manifest_records
+from tensor_training_core.data.split import split_rows
 from tensor_training_core.data.manifest.writer import write_manifest
 from tensor_training_core.data.validation import validate_coco_dataset
 from tensor_training_core.evaluation.evaluator import evaluate_model
@@ -25,6 +26,20 @@ from tensor_training_core.utils.paths import ensure_run_context, resolve_repo_pa
 
 class TrainingService:
     """Phase-1 orchestration surface for the core Python modules."""
+
+    @staticmethod
+    def _resolve_train_manifest_path(dataset_config) -> Path:
+        split_config = dataset_config.dataset.split
+        if split_config is not None:
+            return resolve_repo_path(split_config.train_manifest_output)
+        return resolve_repo_path(dataset_config.dataset.manifest_output)
+
+    @staticmethod
+    def _resolve_eval_manifest_path(dataset_config) -> Path:
+        split_config = dataset_config.dataset.split
+        if split_config is not None:
+            return resolve_repo_path(split_config.val_manifest_output)
+        return resolve_repo_path(dataset_config.dataset.manifest_output)
 
     def _prepare_context(self, config_path: str | Path) -> RunContext:
         config = load_experiment_config(resolve_repo_path(config_path))
@@ -102,6 +117,47 @@ class TrainingService:
             "manifest_path": str(manifest_path),
             "label_map_path": str(label_map_path),
         }
+
+        split_config = dataset_config.dataset.split
+        if split_config is not None:
+            grouped_rows = {}
+            for record in records:
+                grouped_rows.setdefault(record.image_path, []).append(record)
+
+            train_rows, val_rows, test_rows = split_rows(
+                [{"image_path": image_path} for image_path in grouped_rows.keys()],
+                train_ratio=split_config.train_ratio,
+                val_ratio=split_config.val_ratio,
+                seed=split_config.seed,
+            )
+            split_image_paths = {
+                "train": {str(row["image_path"]) for row in train_rows},
+                "val": {str(row["image_path"]) for row in val_rows},
+                "test": {str(row["image_path"]) for row in test_rows},
+            }
+            split_output_paths = {
+                "train": resolve_repo_path(split_config.train_manifest_output),
+                "val": resolve_repo_path(split_config.val_manifest_output),
+                "test": resolve_repo_path(split_config.test_manifest_output),
+            }
+
+            for split_name, output_path in split_output_paths.items():
+                split_records = [record for record in records if record.image_path in split_image_paths[split_name]]
+                write_manifest(split_records, output_path)
+
+            metadata["split"] = {
+                "train_manifest_path": str(split_output_paths["train"]),
+                "val_manifest_path": str(split_output_paths["val"]),
+                "test_manifest_path": str(split_output_paths["test"]),
+                "train_image_count": len(split_image_paths["train"]),
+                "val_image_count": len(split_image_paths["val"]),
+                "test_image_count": len(split_image_paths["test"]),
+                "train_record_count": sum(1 for record in records if record.image_path in split_image_paths["train"]),
+                "val_record_count": sum(1 for record in records if record.image_path in split_image_paths["val"]),
+                "test_record_count": sum(1 for record in records if record.image_path in split_image_paths["test"]),
+                "seed": split_config.seed,
+            }
+
         metadata_path.parent.mkdir(parents=True, exist_ok=True)
         metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
         logger.info("Prepared dataset manifest from config: %s", config_path)
@@ -114,6 +170,8 @@ class TrainingService:
                 "label_map_path": str(label_map_path),
                 "metadata_path": str(metadata_path),
                 "record_count": str(len(records)),
+                "train_manifest_path": str(self._resolve_train_manifest_path(dataset_config)),
+                "eval_manifest_path": str(self._resolve_eval_manifest_path(dataset_config)),
             },
         )
 
@@ -121,7 +179,7 @@ class TrainingService:
         context, dataset_config, model_config, training_config = self._load_phase1_configs(config_path)
         initialize_run_logging(context.log_dir)
         logger = get_logger("training")
-        manifest_path = resolve_repo_path(dataset_config.dataset.manifest_output)
+        manifest_path = self._resolve_train_manifest_path(dataset_config)
         if not manifest_path.exists():
             self.prepare_dataset(config_path)
         if training_config.training.backend == "smoke":
@@ -159,7 +217,7 @@ class TrainingService:
         outputs = evaluate_model(
             context=context,
             experiment_id=context.experiment_id,
-            manifest_path=resolve_repo_path(dataset_config.dataset.manifest_output),
+            manifest_path=self._resolve_eval_manifest_path(dataset_config),
             model_config=model_config,
             training_config=training_config,
         )

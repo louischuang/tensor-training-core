@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import json
+import random
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
 
-from tensor_training_core.config.schema import ModelConfig, TrainingConfig
+from tensor_training_core.config.schema import AugmentationSettings, ModelConfig, TrainingConfig
 from tensor_training_core.data.manifest.reader import read_manifest
 from tensor_training_core.interfaces.dto import RunContext
 from tensor_training_core.models.anchors import compute_iou, encode_box_to_anchor, load_anchor_array
 from tensor_training_core.models.factory import build_keras_detection_model
+from tensor_training_core.training.callbacks import build_training_progress_callback
+from tensor_training_core.utils.logging import get_logger
+from tensor_training_core.utils.paths import resolve_repo_path
 from tensor_training_core.utils.seed import seed_everything
 
 
@@ -101,12 +105,47 @@ def _normalize_box(bbox_xywh: list[float], width: float, height: float) -> list[
     return [x / width, y / height, w / width, h / height]
 
 
+def _augment_image_and_boxes(
+    image_array: np.ndarray,
+    boxes_xywh_norm: list[np.ndarray],
+    augmentation: AugmentationSettings,
+    rng: random.Random,
+) -> tuple[np.ndarray, list[np.ndarray]]:
+    if not augmentation.enabled:
+        return image_array, boxes_xywh_norm
+
+    augmented_image = np.asarray(image_array, dtype=np.float32)
+    augmented_boxes = [np.asarray(box, dtype=np.float32).copy() for box in boxes_xywh_norm]
+
+    if augmentation.horizontal_flip_prob > 0.0 and rng.random() < augmentation.horizontal_flip_prob:
+        augmented_image = np.flip(augmented_image, axis=1).copy()
+        for index, box in enumerate(augmented_boxes):
+            x, y, w, h = [float(value) for value in box.tolist()]
+            augmented_boxes[index] = np.asarray([max(0.0, min(1.0 - w, 1.0 - x - w)), y, w, h], dtype=np.float32)
+
+    if augmentation.brightness_delta > 0.0:
+        delta = rng.uniform(-augmentation.brightness_delta, augmentation.brightness_delta)
+        augmented_image = np.clip(augmented_image + delta, 0.0, 1.0)
+
+    contrast_min = float(augmentation.contrast_min)
+    contrast_max = float(augmentation.contrast_max)
+    if contrast_max > contrast_min and contrast_max > 0.0:
+        factor = rng.uniform(contrast_min, contrast_max)
+        mean = np.mean(augmented_image, axis=(0, 1), keepdims=True)
+        augmented_image = np.clip((augmented_image - mean) * factor + mean, 0.0, 1.0)
+
+    return augmented_image.astype(np.float32), augmented_boxes
+
+
 def _load_single_sample(
     row: dict[str, object],
     image_size: tuple[int, int],
     anchors: np.ndarray,
+    anchor_match_iou_threshold: float,
+    augmentation: AugmentationSettings,
+    rng: random.Random,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    image = Image.open(row["image_path"]).convert("RGB")
+    image = Image.open(resolve_repo_path(row["image_path"])).convert("RGB")
     image = image.resize(image_size)
     image_array = np.asarray(image, dtype=np.float32) / 255.0
 
@@ -117,9 +156,22 @@ def _load_single_sample(
     box_offsets = np.zeros((max_detections, 4), dtype=np.float32)
     bbox_weights = np.zeros((max_detections,), dtype=np.float32)
     best_ious = np.zeros((max_detections,), dtype=np.float32)
+    normalized_boxes: list[np.ndarray] = []
+    category_ids: list[int] = []
 
     for annotation in row["annotations"]:
         normalized_box = np.asarray(_normalize_box(annotation["bbox_xywh"], width, height), dtype=np.float32)
+        normalized_boxes.append(normalized_box)
+        category_ids.append(int(annotation["category_id"]))
+
+    image_array, normalized_boxes = _augment_image_and_boxes(
+        image_array,
+        normalized_boxes,
+        augmentation,
+        rng,
+    )
+
+    for category_id, normalized_box in zip(category_ids, normalized_boxes, strict=False):
         box_center = np.asarray(
             [
                 normalized_box[0] + normalized_box[2] / 2.0,
@@ -131,10 +183,12 @@ def _load_single_sample(
         )
         ious = np.asarray([compute_iou(box_center, anchor) for anchor in anchors], dtype=np.float32)
         anchor_index = int(np.argmax(ious))
+        if ious[anchor_index] < anchor_match_iou_threshold:
+            continue
         if ious[anchor_index] < best_ious[anchor_index]:
             continue
         best_ious[anchor_index] = ious[anchor_index]
-        classes[anchor_index] = int(annotation["category_id"])
+        classes[anchor_index] = category_id
         box_offsets[anchor_index] = encode_box_to_anchor(normalized_box, anchors[anchor_index])
         bbox_weights[anchor_index] = 1.0
 
@@ -147,6 +201,9 @@ def build_manifest_sequence(
     image_size: tuple[int, int],
     batch_size: int,
     anchors: np.ndarray,
+    anchor_match_iou_threshold: float,
+    seed: int,
+    augmentation: AugmentationSettings,
 ):
     class ManifestSequence(tf.keras.utils.Sequence):
         def __init__(self) -> None:
@@ -155,6 +212,9 @@ def build_manifest_sequence(
             self.image_size = image_size
             self.batch_size = max(1, batch_size)
             self.anchors = anchors
+            self.anchor_match_iou_threshold = anchor_match_iou_threshold
+            self.rng = random.Random(seed)
+            self.augmentation = augmentation
 
         def __len__(self) -> int:
             return (len(self.rows) + self.batch_size - 1) // self.batch_size
@@ -173,6 +233,9 @@ def build_manifest_sequence(
                     row,
                     self.image_size,
                     self.anchors,
+                    self.anchor_match_iou_threshold,
+                    self.augmentation,
+                    self.rng,
                 )
                 images.append(image_array)
                 classes.append(class_targets)
@@ -189,6 +252,9 @@ def build_manifest_sequence(
                 "class_output": np.ones_like(class_array, dtype=np.float32),
                 "bbox_output": bbox_weight_array,
             }
+
+        def on_epoch_end(self) -> None:
+            self.rng.shuffle(self.rows)
 
     return ManifestSequence()
 
@@ -209,6 +275,7 @@ def run_tensorflow_training(
 
     seed_everything(training_config.training.seed)
     tf.keras.utils.set_random_seed(training_config.training.seed)
+    logger = get_logger("training")
 
     image_size = tuple(model_config.model.image_size)
     anchors = load_anchor_array(model_config)
@@ -249,9 +316,32 @@ def run_tensorflow_training(
         image_size,
         training_config.training.batch_size,
         anchors,
+        model_config.model.anchor_match_iou_threshold,
+        training_config.training.seed,
+        training_config.training.augmentation,
+    )
+    progress_callback = build_training_progress_callback(
+        tf,
+        logger=logger,
+        total_epochs=training_config.training.epochs,
     )
 
-    history = model.fit(sequence, epochs=training_config.training.epochs, verbose=0)
+    logger.info(
+        "training_configuration manifest_path=%s record_count=%s batch_size=%s epochs=%s max_detections=%s augmentation_enabled=%s",
+        manifest_path,
+        len(rows),
+        training_config.training.batch_size,
+        training_config.training.epochs,
+        max_detections,
+        training_config.training.augmentation.enabled,
+    )
+
+    history = model.fit(
+        sequence,
+        epochs=training_config.training.epochs,
+        verbose=0,
+        callbacks=[progress_callback],
+    )
     model.save(checkpoint_path)
 
     with metrics_path.open("w", encoding="utf-8") as handle:
@@ -280,6 +370,7 @@ def run_tensorflow_training(
         "num_classes": int(model_config.model.num_classes),
         "max_detections": max_detections,
         "max_samples": training_config.training.max_samples,
+        "augmentation_enabled": training_config.training.augmentation.enabled,
     }
     summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
     return {
