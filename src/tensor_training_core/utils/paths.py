@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[3]
 ARTIFACTS_DIR = ROOT / "artifacts"
 LOGS_DIR = ARTIFACTS_DIR / "logs"
 EXPERIMENTS_DIR = ARTIFACTS_DIR / "experiments"
+REPORTS_DIR = ARTIFACTS_DIR / "reports"
 
 
 def ensure_directory(path: Path) -> Path:

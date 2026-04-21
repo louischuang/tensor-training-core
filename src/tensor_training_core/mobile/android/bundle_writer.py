@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 from pathlib import Path
 
@@ -18,4 +19,40 @@ def write_android_bundle(
     shutil.copy2(label_map_path, bundle_dir / "label_map.json")
     shutil.copy2(metadata_path, bundle_dir / "export_metadata.json")
     write_label_txt(bundle_dir / "label.txt", label_map_path)
+    assumptions_path = bundle_dir / "INTEGRATION.md"
+    assumptions_path.write_text(
+        "\n".join(
+            [
+                "# Android Integration Assumptions",
+                "",
+                "- Load `model.tflite` with TensorFlow Lite Android runtime.",
+                "- Use `label.txt` for foreground labels shown in the app UI.",
+                "- Input tensor expects RGB image resized to the metadata image size.",
+                "- Preprocessing expects normalized float values or model-specific quantization from metadata.",
+                "- Postprocessing should apply the score and IoU thresholds in `export_metadata.json`.",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    verification_path = bundle_dir / "bundle_verification.json"
+    verification_path.write_text(
+        json.dumps(
+            {
+                "platform": "android",
+                "required_files": [
+                    "model.tflite",
+                    "label.txt",
+                    "label_map.json",
+                    "export_metadata.json",
+                    "INTEGRATION.md",
+                ],
+                "status": "ready",
+            },
+            indent=2,
+            ensure_ascii=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     return bundle_dir

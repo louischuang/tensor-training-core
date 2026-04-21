@@ -138,6 +138,7 @@ def verify_tflite_inference(
         "source_run_id": latest_export_run.name,
         "sample_image_path": sample_record.image_path,
         "results": {},
+        "bundle_checks": {},
     }
     logger.info(
         "inference_verification_started source_run_id=%s sample_image_path=%s",
@@ -198,6 +199,36 @@ def verify_tflite_inference(
             len(detections),
             preview_path,
         )
+
+    try:
+        latest_mobile_run = get_latest_run_dir(
+            experiment_id,
+            required_relative_path="mobile/android/float32/model.tflite",
+            exclude_run_id=context.run_id,
+        )
+        for platform in ("android", "ios"):
+            platform_checks: dict[str, object] = {}
+            for quantization in export_manifest["exports"].keys():
+                bundle_dir = latest_mobile_run / "mobile" / platform / quantization
+                required_files = [
+                    bundle_dir / "model.tflite",
+                    bundle_dir / "label.txt",
+                    bundle_dir / "label_map.json",
+                    bundle_dir / "export_metadata.json",
+                    bundle_dir / "INTEGRATION.md",
+                    bundle_dir / "bundle_verification.json",
+                ]
+                missing_files = [str(path) for path in required_files if not path.exists()]
+                platform_checks[quantization] = {
+                    "bundle_dir": str(bundle_dir),
+                    "missing_files": missing_files,
+                    "status": "ready" if not missing_files else "incomplete",
+                }
+            verification_summary["bundle_checks"][platform] = platform_checks
+        logger.info("inference_bundle_validation_completed source_mobile_run_id=%s", latest_mobile_run.name)
+    except FileNotFoundError:
+        verification_summary["bundle_checks"]["status"] = "mobile_bundle_not_found"
+        logger.warning("inference_bundle_validation_skipped mobile_bundle_not_found")
 
     summary_path = context.artifact_dir / "tflite_inference_summary.json"
     summary_path.write_text(json.dumps(verification_summary, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")

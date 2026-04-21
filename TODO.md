@@ -65,19 +65,19 @@
 
 - [x] Implement validation pipeline
 - [x] Add mAP / precision / recall metrics output
-- [ ] Generate sample prediction visualizations
-- [ ] Save evaluation reports to `artifacts/reports/`
+- [x] Generate sample prediction visualizations
+- [x] Save evaluation reports to `artifacts/reports/`
 
 ## Phase 8. TensorFlow Lite Export
 
-- [ ] Implement SavedModel export
+- [x] Implement SavedModel export
 - [x] Implement `.tflite` conversion
 - [x] Support float16 quantization
 - [x] Evaluate whether int8 quantization is needed after the first working prototype
 - [x] Generate label map and export metadata manifest
 - [x] Add representative dataset planning for future int8 quantization
 - [x] Track export metadata for every exported artifact
-- [ ] Write export logs and error summaries to `artifacts/logs/`
+- [x] Write export logs and error summaries to `artifacts/logs/`
 
 ## Phase 9. Mobile Deployment Packaging
 
@@ -85,7 +85,7 @@
 - [x] Create mobile asset bundle layout for Android
 - [x] Generate model metadata, labels, thresholds, and input spec documents for mobile apps
 - [x] Add packaging functions for mobile deployment artifacts
-- [ ] Document integration assumptions for iOS and Android apps
+- [x] Document integration assumptions for iOS and Android apps
 - [x] Emit standardized inference preprocessing / postprocessing deployment spec
 
 ## Phase 10. Inference Verification
@@ -93,7 +93,7 @@
 - [x] Implement TFLite inference runner
 - [x] Add sample-image smoke test for exported model
 - [x] Validate model input / output tensor formats
-- [ ] Verify exported bundle assumptions against iOS / Android integration expectations
+- [x] Verify exported bundle assumptions against iOS / Android integration expectations
 - [x] Add simple visualization utility for detection output
 
 ## Phase 11. Shared Service Layer For Phase 2

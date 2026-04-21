@@ -8,11 +8,12 @@ from PIL import Image
 
 from tensor_training_core.config.schema import ModelConfig, TrainingConfig
 from tensor_training_core.evaluation.reports import compute_detection_metrics, run_classwise_nms
+from tensor_training_core.inference.visualize import draw_detection_overlays
 from tensor_training_core.interfaces.dto import RunContext
 from tensor_training_core.models.anchors import decode_box_from_anchor, load_anchor_array
 from tensor_training_core.training.runner import apply_sample_limit, load_training_samples
 from tensor_training_core.utils.logging import get_logger
-from tensor_training_core.utils.paths import get_latest_run_dir, resolve_repo_path
+from tensor_training_core.utils.paths import REPORTS_DIR, ensure_directory, get_latest_run_dir, resolve_repo_path
 
 
 def _prepare_input_image(image_path: str | Path, image_size: tuple[int, int]) -> np.ndarray:
@@ -59,6 +60,7 @@ def _decode_predictions(
             {
                 "anchor_index": anchor_index,
                 "label_id": label_id,
+                "label": str(label_id),
                 "score": score,
                 "bbox_xywh_norm": [float(value) for value in decoded_box.tolist()],
             }
@@ -124,7 +126,19 @@ def evaluate_model(
 
     metrics_path = context.artifact_dir / "evaluation_metrics.json"
     summary_path = context.artifact_dir / "evaluation_summary.json"
+    preview_dir = context.artifact_dir / "evaluation_previews"
+    preview_dir.mkdir(parents=True, exist_ok=True)
     metrics_path.write_text(json.dumps(detection_metrics, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+
+    preview_outputs: list[str] = []
+    for image_index, row in enumerate(rows[:3]):
+        image_predictions = predictions_by_image.get(str(row["image_path"]), [])
+        preview_path = draw_detection_overlays(
+            image_path=row["image_path"],
+            output_path=preview_dir / f"prediction_{image_index + 1}.jpg",
+            detections=image_predictions[:5],
+        )
+        preview_outputs.append(str(preview_path))
 
     summary = {
         "run_id": context.run_id,
@@ -138,16 +152,38 @@ def evaluate_model(
         "map50": detection_metrics["map50"],
         "precision_macro": detection_metrics["precision_macro"],
         "recall_macro": detection_metrics["recall_macro"],
+        "preview_dir": str(preview_dir),
+        "preview_images": preview_outputs,
     }
     summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+
+    report_dir = ensure_directory(REPORTS_DIR / experiment_id / context.run_id)
+    report_metrics_path = report_dir / "evaluation_metrics.json"
+    report_summary_path = report_dir / "evaluation_summary.json"
+    report_index_path = report_dir / "evaluation_report.json"
+    report_metrics_path.write_text(metrics_path.read_text(encoding="utf-8"), encoding="utf-8")
+    report_summary_path.write_text(summary_path.read_text(encoding="utf-8"), encoding="utf-8")
+    report_index = {
+        "experiment_id": experiment_id,
+        "run_id": context.run_id,
+        "source_run_id": latest_run_dir.name,
+        "report_summary_path": str(report_summary_path),
+        "report_metrics_path": str(report_metrics_path),
+        "preview_images": preview_outputs,
+    }
+    report_index_path.write_text(json.dumps(report_index, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
     logger.info(
-        "evaluation_metrics_completed map50=%.6f precision_macro=%.6f recall_macro=%.6f",
+        "evaluation_metrics_completed map50=%.6f precision_macro=%.6f recall_macro=%.6f report_dir=%s",
         detection_metrics["map50"],
         detection_metrics["precision_macro"],
         detection_metrics["recall_macro"],
+        report_dir,
     )
     return {
         "checkpoint_path": str(checkpoint_path),
         "metrics_path": str(metrics_path),
         "summary_path": str(summary_path),
+        "preview_dir": str(preview_dir),
+        "report_dir": str(report_dir),
+        "report_index_path": str(report_index_path),
     }

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import traceback
 from pathlib import Path
 
 import numpy as np
@@ -66,55 +68,78 @@ def export_tflite_model(
     manifest_path = dataset_config.dataset.manifest_output
     image_size = tuple(model_config.model.image_size)
 
-    model = tf.keras.models.load_model(checkpoint_path)
     export_dir = context.artifact_dir / "export"
     export_dir.mkdir(parents=True, exist_ok=True)
-    label_txt_path = write_label_txt(export_dir / "label.txt", resolve_repo_path(dataset_config.dataset.label_map_output))
-    logger.info(
-        "export_started checkpoint_path=%s export_dir=%s manifest_path=%s label_txt_path=%s",
-        checkpoint_path,
-        export_dir,
-        manifest_path,
-        label_txt_path,
-    )
-
-    quantized_outputs: dict[str, str] = {}
-    export_index: dict[str, object] = {
-        "source_run_id": latest_run_dir.name,
-        "checkpoint_path": str(checkpoint_path),
-        "exports": {},
-    }
-
-    for quantization in ("float32", "float16", "int8"):
-        tflite_bytes = _convert_quantized_model(tf, model, quantization, manifest_path, image_size)
-        tflite_path = export_dir / f"{model_config.model.name}_{quantization}.tflite"
-        metadata_path = export_dir / f"export_metadata_{quantization}.json"
-        tflite_path.write_bytes(tflite_bytes)
-        metadata = build_export_metadata(
-            model_config=model_config,
-            dataset_config=dataset_config,
-            tflite_path=tflite_path,
-            source_checkpoint=checkpoint_path,
-            quantization=quantization,
-        )
-        write_json_file(metadata_path, metadata)
-        export_index["exports"][quantization] = {
-            "tflite_path": str(tflite_path),
-            "metadata_path": str(metadata_path),
-        }
-        quantized_outputs[f"tflite_path_{quantization}"] = str(tflite_path)
-        quantized_outputs[f"metadata_path_{quantization}"] = str(metadata_path)
+    failure_summary_path = context.log_dir / "failure_summary.json"
+    try:
+        model = tf.keras.models.load_model(checkpoint_path)
+        label_txt_path = write_label_txt(export_dir / "label.txt", resolve_repo_path(dataset_config.dataset.label_map_output))
         logger.info(
-            "export_quantization_completed quantization=%s tflite_path=%s metadata_path=%s",
-            quantization,
-            tflite_path,
-            metadata_path,
+            "export_started checkpoint_path=%s export_dir=%s manifest_path=%s label_txt_path=%s",
+            checkpoint_path,
+            export_dir,
+            manifest_path,
+            label_txt_path,
         )
 
-    export_manifest_path = export_dir / "export_manifest.json"
-    write_json_file(export_manifest_path, export_index)
-    logger.info("export_manifest_completed export_manifest_path=%s", export_manifest_path)
-    quantized_outputs["checkpoint_path"] = str(checkpoint_path)
-    quantized_outputs["export_manifest_path"] = str(export_manifest_path)
-    quantized_outputs["label_txt_path"] = str(label_txt_path)
-    return quantized_outputs
+        quantized_outputs: dict[str, str] = {}
+        export_index: dict[str, object] = {
+            "source_run_id": latest_run_dir.name,
+            "checkpoint_path": str(checkpoint_path),
+            "exports": {},
+        }
+
+        saved_model_dir = export_dir / "saved_model"
+        tf.saved_model.save(model, str(saved_model_dir))
+        export_index["saved_model_dir"] = str(saved_model_dir)
+        quantized_outputs["saved_model_dir"] = str(saved_model_dir)
+        logger.info("export_saved_model_completed saved_model_dir=%s", saved_model_dir)
+
+        for quantization in ("float32", "float16", "int8"):
+            tflite_bytes = _convert_quantized_model(tf, model, quantization, manifest_path, image_size)
+            tflite_path = export_dir / f"{model_config.model.name}_{quantization}.tflite"
+            metadata_path = export_dir / f"export_metadata_{quantization}.json"
+            tflite_path.write_bytes(tflite_bytes)
+            metadata = build_export_metadata(
+                model_config=model_config,
+                dataset_config=dataset_config,
+                tflite_path=tflite_path,
+                source_checkpoint=checkpoint_path,
+                quantization=quantization,
+            )
+            write_json_file(metadata_path, metadata)
+            export_index["exports"][quantization] = {
+                "tflite_path": str(tflite_path),
+                "metadata_path": str(metadata_path),
+            }
+            quantized_outputs[f"tflite_path_{quantization}"] = str(tflite_path)
+            quantized_outputs[f"metadata_path_{quantization}"] = str(metadata_path)
+            logger.info(
+                "export_quantization_completed quantization=%s tflite_path=%s metadata_path=%s",
+                quantization,
+                tflite_path,
+                metadata_path,
+            )
+
+        export_manifest_path = export_dir / "export_manifest.json"
+        write_json_file(export_manifest_path, export_index)
+        logger.info("export_manifest_completed export_manifest_path=%s", export_manifest_path)
+        quantized_outputs["checkpoint_path"] = str(checkpoint_path)
+        quantized_outputs["export_manifest_path"] = str(export_manifest_path)
+        quantized_outputs["label_txt_path"] = str(label_txt_path)
+        quantized_outputs["failure_summary_path"] = ""
+        return quantized_outputs
+    except Exception as exc:
+        failure_summary = {
+            "run_id": context.run_id,
+            "experiment_id": experiment_id,
+            "stage": "export",
+            "error_type": exc.__class__.__name__,
+            "error_message": str(exc),
+            "checkpoint_path": str(checkpoint_path),
+            "manifest_path": str(manifest_path),
+            "traceback": traceback.format_exc(),
+        }
+        failure_summary_path.write_text(json.dumps(failure_summary, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+        logger.error("export_failed failure_summary_path=%s error=%s", failure_summary_path, exc)
+        raise
