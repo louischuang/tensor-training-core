@@ -13,7 +13,30 @@ from tensor_training_core.utils.paths import ARTIFACTS_DIR, ensure_directory
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Tensor Training Core API", version="0.1.0")
+    app = FastAPI(
+        title="Tensor Training Core API",
+        version="0.1.0",
+        summary="TensorFlow Lite object detection training and export API.",
+        description=(
+            "HTTP API for dataset import, dataset preparation, model training, evaluation-linked artifact discovery, "
+            "TFLite export, and mobile bundle packaging. "
+            "Swagger UI is available at `/docs`, ReDoc at `/redoc`, and the raw OpenAPI schema at `/openapi.json`."
+        ),
+        contact={
+            "name": "Tensor Training Core",
+        },
+        license_info={
+            "name": "Repository license",
+        },
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
+        openapi_tags=[
+            {"name": "datasets", "description": "COCO dataset import, validation, manifest generation, and split preparation."},
+            {"name": "training", "description": "Training job execution and job status lookup."},
+            {"name": "exports", "description": "SavedModel, TFLite, mobile bundles, and artifact metadata lookup."},
+        ],
+    )
     app.state.service = TrainingService()
     app.state.api_logger = get_logger("api")
     api_log_dir = ensure_directory(ARTIFACTS_DIR / "logs" / "api")

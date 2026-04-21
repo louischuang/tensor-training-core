@@ -208,6 +208,13 @@ or:
 scripts/serve_api.sh
 ```
 
+Interactive API documentation:
+
+- Swagger UI: `http://127.0.0.1:8000/docs`
+- ReDoc: `http://127.0.0.1:8000/redoc`
+- OpenAPI schema: `http://127.0.0.1:8000/openapi.json`
+- Repository guide: [API_DOCUMENTATION.md](/Users/louischuang/CompanyStorage/嵐奕科技有限公司/第四處 技術處/正在進行中的專案/20260421-MyOpenSource/tensor-training-core/API_DOCUMENTATION.md)
+
 ## Important Output Locations
 
 - Jobs: `artifacts/jobs/`
