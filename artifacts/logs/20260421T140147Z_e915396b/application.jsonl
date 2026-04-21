@@ -1,1 +1,0 @@
-{"level": "INFO", "logger": "training", "message": "Completed tensorflow training run from config: configs/experiments/train_tensorflow_esp32_cam_dev.yaml"}

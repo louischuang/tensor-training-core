@@ -1,2 +1,0 @@
-{"level": "INFO", "logger": "tensorflow", "message": "Assets written to: /tmp/tmpi8zy38cr/assets"}
-{"level": "INFO", "logger": "export", "message": "Completed TFLite export from config: configs/experiments/train_tensorflow_esp32_cam_dev.yaml"}
