@@ -2,30 +2,24 @@
 
 ## Purpose
 
-This skill describes how third-party platforms and AI agents should interact with Tensor Training Core after phase 2 is implemented.
+This skill describes how third-party platforms and AI agents should interact with Tensor Training Core through the shared phase-2 orchestration layer.
 
-The project is intended to support:
+The supported workflow is:
 
 - COCO dataset import
 - dataset preparation into an internal manifest
 - MobileNet-based object detection training
+- evaluation and report generation
 - TensorFlow Lite export
 - iOS and Android mobile bundle generation
-
-## Status
-
-Current status:
-
-- planning stage
-- phase 1 focuses on Python modules
-- this skill is a draft for the later CLI and API integration phase
-
-This file should be finalized only after the CLI and API become real.
+- artifact and job inspection
 
 ## Definitions
 
 - `dataset`: images plus labeling files that can be imported into training
 - `internal manifest`: the normalized project-owned metadata generated from an imported dataset
+- `job`: a tracked execution record under `artifacts/jobs/`
+- `artifact`: generated files under `artifacts/experiments/`, `artifacts/reports/`, or `artifacts/logs/`
 
 ## Supported Task Intents
 
@@ -37,6 +31,7 @@ This file should be finalized only after the CLI and API become real.
 - export a TensorFlow Lite model
 - package iOS and Android deployment assets
 - inspect generated artifacts
+- inspect generated job records
 
 ## Preferred Invocation Order
 
@@ -57,6 +52,7 @@ Typical inputs include:
 - experiment config path
 - runtime target such as `macos` or `cuda`
 - output artifact directory
+- job id when reading status or artifact metadata
 
 ## Expected Outputs
 
@@ -64,24 +60,23 @@ Typical inputs include:
 - train / val / test split metadata
 - model checkpoints
 - evaluation reports
+- evaluation preview images
+- SavedModel export
 - `.tflite` model
 - label map
+- `label.txt`
 - metadata JSON
 - iOS bundle
 - Android bundle
+- job records
+- structured logs and failure summaries
 
 ## Integration Contract
 
-Phase 1:
-
-- do not rely on this skill yet
-- core behavior should be validated through Python modules first
-
-Phase 2:
-
-- prefer stable CLI commands
-- then stable HTTP API
-- avoid importing private modules directly
+- Prefer stable CLI commands first.
+- Use the HTTP API when an external platform needs request/response integration.
+- Avoid importing private Python modules directly.
+- Treat `TrainingService.execute_operation(...)` as the shared orchestration layer behind CLI and API.
 
 Agents should avoid:
 
@@ -90,7 +85,7 @@ Agents should avoid:
 - skipping dataset validation
 - calling GPU-specific flows on unsupported hardware
 
-## Planned CLI Surface
+## CLI Surface
 
 ```text
 tensor-training-core dataset import-coco --config <path>
@@ -100,12 +95,14 @@ tensor-training-core train status --job-id <id>
 tensor-training-core evaluate run --config <path>
 tensor-training-core export tflite --config <path>
 tensor-training-core export mobile --config <path>
-tensor-training-core artifact list --artifact-dir <path>
+tensor-training-core artifact list --limit <n>
 tensor-training-core artifact describe --artifact <path>
 tensor-training-core serve api
 ```
 
-## Planned API Surface
+CLI responses are JSON so agents can parse `job_id`, `state`, and `outputs`.
+
+## API Surface
 
 ```text
 GET  /health
@@ -115,28 +112,65 @@ POST /training/jobs
 GET  /training/jobs/{job_id}
 POST /exports/tflite
 POST /exports/mobile-bundle
-GET  /artifacts/{artifact_id}
+GET  /artifacts/{job_id}
 ```
+
+The API currently accepts:
+
+```json
+{
+  "config_path": "configs/experiments/train_tensorflow_esp32_cam_dev.yaml"
+}
+```
+
+and returns:
+
+```json
+{
+  "job": {
+    "job_id": "job_xxx",
+    "operation": "train",
+    "state": "completed",
+    "message": "tensorflow training completed.",
+    "outputs": {
+      "checkpoint_path": "...",
+      "summary_path": "..."
+    }
+  }
+}
+```
+
+## Artifact Locations
+
+- Job records: `artifacts/jobs/<job_id>.json`
+- Run artifacts: `artifacts/experiments/<experiment_id>/<run_id>/`
+- Evaluation reports: `artifacts/reports/<experiment_id>/<run_id>/`
+- Structured logs: `artifacts/logs/<run_id>/application.jsonl`
+- API request log: `artifacts/logs/api/requests.jsonl`
 
 ## Runtime Notes
 
 - macOS Apple Silicon is intended for development, validation, lightweight training, and export
 - x64 Linux with CUDA Docker is intended for heavier training
-- long-running training and export operations should be treated as asynchronous jobs in the later API phase
+- job records already exist, but execution is currently synchronous from the caller perspective
+- long-running training and export operations should still be treated as potentially slow operations
 
 ## Logging Notes
 
-Logging should grow together with the implemented features:
+Logging currently includes:
 
-- phase 1: module-level logs for dataset, training, export, and failures
-- phase 2: CLI and API correlation fields plus request and job lifecycle logs
+- per-run structured logs under `artifacts/logs/<run_id>/application.jsonl`
+- failure summaries for training, export, and mobile packaging
+- API request lifecycle logs under `artifacts/logs/api/requests.jsonl`
+- job status records under `artifacts/jobs/`
 
 ## Safety And License Notes
 
 - COCO-format input is supported, but dataset licensing and redistribution obligations still need review
 - agents should preserve license notices and project metadata when generating bundles or manifests
 - agents should not claim commercial clearance without a final dependency and dataset review
+- agents should not assume exported bundles are production-ready app packages; they are integration assets
 
 ## Update Rule
 
-Whenever phase-2 CLI commands, API routes, input schemas, or artifact layouts change, this `SKILL.md` should be updated in the same change set.
+Whenever CLI commands, API routes, input schemas, or artifact layouts change, this `SKILL.md` should be updated in the same change set.

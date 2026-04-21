@@ -101,49 +101,49 @@
 - [x] Create a shared application service layer for dataset, training, export, and artifact operations
 - [x] Define typed request / response DTOs for future external interfaces
 - [x] Add job-state abstraction for long-running training and export tasks
-- [ ] Ensure future CLI, API, and agent integrations call the same orchestration layer
-- [ ] Add shared job status and failure summary model for observability
+- [x] Ensure future CLI, API, and agent integrations call the same orchestration layer
+- [x] Add shared job status and failure summary model for observability
 - [x] Add shared logging helpers so later interfaces extend the same structured log schema
 
 ## Phase 12. CLI and Scripts
 
-- [ ] Create package CLI entrypoint
-- [ ] Add `dataset import-coco` command group
-- [ ] Add `dataset prepare` command
-- [ ] Add `train run` command
-- [ ] Add `train status` command
-- [ ] Add `evaluate run` command
-- [ ] Add `export tflite` command
-- [ ] Add `export mobile` command
-- [ ] Add `artifact list` command
-- [ ] Add `artifact describe` command
-- [ ] Add `serve api` command
+- [x] Create package CLI entrypoint
+- [x] Add `dataset import-coco` command group
+- [x] Add `dataset prepare` command
+- [x] Add `train run` command
+- [x] Add `train status` command
+- [x] Add `evaluate run` command
+- [x] Add `export tflite` command
+- [x] Add `export mobile` command
+- [x] Add `artifact list` command
+- [x] Add `artifact describe` command
+- [x] Add `serve api` command
 - [ ] Extend logging with CLI-specific correlation fields
-- [ ] Add shell wrappers in `scripts/`
+- [x] Add shell wrappers in `scripts/`
 
 ## Phase 13. HTTP API
 
-- [ ] Create FastAPI app skeleton
-- [ ] Add health endpoint
-- [ ] Add COCO import endpoint
-- [ ] Add dataset prepare endpoint
-- [ ] Add training job submission endpoint
-- [ ] Add training job status endpoint
-- [ ] Add TFLite export endpoint
-- [ ] Add mobile bundle export endpoint
-- [ ] Add artifact retrieval or artifact metadata endpoint
-- [ ] Add structured API logging and request-to-job correlation ids
-- [ ] Persist API request and job lifecycle logs to machine-readable files
+- [x] Create FastAPI app skeleton
+- [x] Add health endpoint
+- [x] Add COCO import endpoint
+- [x] Add dataset prepare endpoint
+- [x] Add training job submission endpoint
+- [x] Add training job status endpoint
+- [x] Add TFLite export endpoint
+- [x] Add mobile bundle export endpoint
+- [x] Add artifact retrieval or artifact metadata endpoint
+- [x] Add structured API logging and request-to-job correlation ids
+- [x] Persist API request and job lifecycle logs to machine-readable files
 
 ## Phase 14. Skill For Third-Party Platforms And AI Agents
 
-- [ ] Finalize `SKILL.md` after CLI and API are defined
-- [ ] Document supported tasks and safe usage boundaries
-- [ ] Document required inputs, outputs, and artifact locations
-- [ ] Add CLI examples for AI-agent usage
-- [ ] Add API examples for third-party platform usage
-- [ ] Document hardware/runtime expectations and long-running job behavior
-- [ ] Document dataset and license caveats for agent users
+- [x] Finalize `SKILL.md` after CLI and API are defined
+- [x] Document supported tasks and safe usage boundaries
+- [x] Document required inputs, outputs, and artifact locations
+- [x] Add CLI examples for AI-agent usage
+- [x] Add API examples for third-party platform usage
+- [x] Document hardware/runtime expectations and long-running job behavior
+- [x] Document dataset and license caveats for agent users
 
 ## Phase 15. Testing
 
@@ -182,10 +182,10 @@
 
 ## Second Integration Milestone
 
-- [ ] Expose the stable workflow through shared service interfaces
-- [ ] Provide a usable CLI for operators and automation
-- [ ] Provide a usable HTTP API for third-party platforms
-- [ ] Provide finalized `SKILL.md` for AI-agent and platform integration
+- [x] Expose the stable workflow through shared service interfaces
+- [x] Provide a usable CLI for operators and automation
+- [x] Provide a usable HTTP API for third-party platforms
+- [x] Provide finalized `SKILL.md` for AI-agent and platform integration
 
 ## Priority Backlog
 

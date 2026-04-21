@@ -19,6 +19,7 @@ from tensor_training_core.export.mobile_bundle import package_mobile_bundles
 from tensor_training_core.export.tflite import export_tflite_model
 from tensor_training_core.inference.tflite_runner import verify_tflite_inference
 from tensor_training_core.interfaces.dto import OperationResult, RunContext
+from tensor_training_core.interfaces.jobs import JobRecord, JobStore
 from tensor_training_core.training.runner import run_smoke_training, run_tensorflow_training
 from tensor_training_core.utils.logging import get_logger, initialize_run_logging
 from tensor_training_core.utils.paths import ensure_run_context, resolve_repo_path
@@ -26,6 +27,9 @@ from tensor_training_core.utils.paths import ensure_run_context, resolve_repo_pa
 
 class TrainingService:
     """Phase-1 orchestration surface for the core Python modules."""
+
+    def __init__(self) -> None:
+        self.job_store = JobStore()
 
     @staticmethod
     def _resolve_quality_report_path(dataset_config) -> Path:
@@ -88,6 +92,9 @@ class TrainingService:
                 "image_count": str(validation.image_count),
                 "annotation_count": str(validation.annotation_count),
                 "category_count": str(validation.category_count),
+                "run_id": context.run_id,
+                "artifact_dir": str(context.artifact_dir),
+                "log_dir": str(context.log_dir),
             },
         )
 
@@ -204,6 +211,9 @@ class TrainingService:
                 "record_count": str(len(records)),
                 "train_manifest_path": str(self._resolve_train_manifest_path(dataset_config)),
                 "eval_manifest_path": str(self._resolve_eval_manifest_path(dataset_config)),
+                "run_id": context.run_id,
+                "artifact_dir": str(context.artifact_dir),
+                "log_dir": str(context.log_dir),
             },
         )
 
@@ -240,7 +250,12 @@ class TrainingService:
             "train",
             "completed",
             f"{training_config.training.backend} training completed.",
-            outputs=outputs,
+            outputs={
+                **outputs,
+                "run_id": context.run_id,
+                "artifact_dir": str(context.artifact_dir),
+                "log_dir": str(context.log_dir),
+            },
         )
 
     def evaluate(self, config_path: str | Path) -> OperationResult:
@@ -256,7 +271,17 @@ class TrainingService:
             training_config=training_config,
         )
         logger.info("Completed evaluation run from config: %s", config_path)
-        return OperationResult("evaluate", "completed", "Evaluation completed.", outputs=outputs)
+        return OperationResult(
+            "evaluate",
+            "completed",
+            "Evaluation completed.",
+            outputs={
+                **outputs,
+                "run_id": context.run_id,
+                "artifact_dir": str(context.artifact_dir),
+                "log_dir": str(context.log_dir),
+            },
+        )
 
     def export_tflite(self, config_path: str | Path) -> OperationResult:
         context, dataset_config, model_config, _ = self._load_phase1_configs(config_path)
@@ -270,7 +295,17 @@ class TrainingService:
             dataset_config=dataset_config,
         )
         logger.info("Completed TFLite export from config: %s", config_path)
-        return OperationResult("export_tflite", "completed", "TFLite export completed.", outputs=outputs)
+        return OperationResult(
+            "export_tflite",
+            "completed",
+            "TFLite export completed.",
+            outputs={
+                **outputs,
+                "run_id": context.run_id,
+                "artifact_dir": str(context.artifact_dir),
+                "log_dir": str(context.log_dir),
+            },
+        )
 
     def package_mobile_bundle(self, config_path: str | Path) -> OperationResult:
         context, dataset_config, _, _ = self._load_phase1_configs(config_path)
@@ -287,7 +322,12 @@ class TrainingService:
             "package_mobile_bundle",
             "completed",
             "Mobile bundle packaging completed.",
-            outputs=outputs,
+            outputs={
+                **outputs,
+                "run_id": context.run_id,
+                "artifact_dir": str(context.artifact_dir),
+                "log_dir": str(context.log_dir),
+            },
         )
 
     def verify_inference(self, config_path: str | Path) -> OperationResult:
@@ -308,5 +348,56 @@ class TrainingService:
             "verify_inference",
             "completed",
             "TFLite inference verification completed.",
-            outputs=outputs,
+            outputs={
+                **outputs,
+                "run_id": context.run_id,
+                "artifact_dir": str(context.artifact_dir),
+                "log_dir": str(context.log_dir),
+            },
         )
+
+    def execute_operation(self, operation: str, config_path: str | Path) -> JobRecord:
+        handlers = {
+            "import_coco_dataset": self.import_coco_dataset,
+            "prepare_dataset": self.prepare_dataset,
+            "train": self.train,
+            "evaluate": self.evaluate,
+            "export_tflite": self.export_tflite,
+            "package_mobile_bundle": self.package_mobile_bundle,
+            "verify_inference": self.verify_inference,
+        }
+        if operation not in handlers:
+            raise ValueError(f"Unsupported operation: {operation}")
+
+        job = self.job_store.create(operation=operation, config_path=str(config_path))
+        job.state = "running"
+        job.message = "Job is running."
+        self.job_store.write(job)
+        try:
+            result = handlers[operation](config_path)
+            job.state = "completed"
+            job.message = result.message
+            job.outputs = result.outputs
+            self.job_store.write(job)
+            return job
+        except Exception as exc:
+            job.state = "failed"
+            job.message = str(exc)
+            self.job_store.write(job)
+            raise
+
+    def get_job_status(self, job_id: str) -> JobRecord:
+        return self.job_store.read(job_id)
+
+    def list_jobs(self) -> list[JobRecord]:
+        return self.job_store.list()
+
+    def describe_artifact(self, path: str | Path) -> dict[str, object]:
+        artifact_path = resolve_repo_path(path)
+        if not artifact_path.exists():
+            raise FileNotFoundError(f"Artifact does not exist: {artifact_path}")
+        return {
+            "path": str(artifact_path),
+            "is_dir": artifact_path.is_dir(),
+            "size_bytes": artifact_path.stat().st_size if artifact_path.is_file() else None,
+        }
