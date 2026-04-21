@@ -1,0 +1,9 @@
+training:
+  backend: tensorflow
+  seed: 42
+  batch_size: 4
+  epochs: 2
+  learning_rate: 0.001
+  runtime: cuda
+  experiment_name: tensorflow_baseline
+  checkpoint_name: latest.keras

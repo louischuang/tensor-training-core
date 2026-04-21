@@ -1,0 +1,10 @@
+dataset:
+  config_path: configs/datasets/esp32_cam_train.yaml
+model:
+  config_path: configs/models/ssd_mobilenet_v2_fpnlite_320.yaml
+training:
+  config_path: configs/training/tensorflow_dev.yaml
+runtime:
+  target: cuda
+  dataset_version: esp32-cam-train-v1
+  experiment_id: train_tensorflow_esp32_cam_dev

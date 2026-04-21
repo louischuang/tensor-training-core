@@ -1,0 +1,9 @@
+name: esp32_cam_train
+dataset:
+  format: coco
+  dataset_root: data/raw/esp32-cam
+  annotations: train/_annotations.coco.json
+  images_dir: train
+  label_map_output: data/manifests/esp32_cam_train_label_map.json
+  manifest_output: data/manifests/esp32_cam_train.jsonl
+  metadata_output: data/manifests/esp32_cam_train_metadata.json

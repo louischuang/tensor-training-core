@@ -1,0 +1,26 @@
+{
+  "images": [
+    {
+      "id": 1,
+      "file_name": "sample_001.ppm",
+      "width": 4,
+      "height": 4
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "name": "object"
+    }
+  ],
+  "annotations": [
+    {
+      "id": 1,
+      "image_id": 1,
+      "category_id": 1,
+      "bbox": [0, 0, 2, 2],
+      "area": 4,
+      "iscrowd": 0
+    }
+  ]
+}

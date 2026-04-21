@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+.venv/
+venv/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Project data and artifacts
+data/raw/*
+data/interim/*
+data/processed/*
+data/manifests/*
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+!data/manifests/.gitkeep
+
+artifacts/*
+!artifacts/checkpoints/
+!artifacts/exported/
+!artifacts/mobile/
+!artifacts/reports/
+!artifacts/logs/
+!artifacts/checkpoints/.gitkeep
+!artifacts/exported/.gitkeep
+!artifacts/mobile/.gitkeep
+!artifacts/reports/.gitkeep
+!artifacts/logs/.gitkeep
+
+# Logs / notebooks
+*.log
+notebooks/.ipynb_checkpoints/

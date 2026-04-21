@@ -1,0 +1,2 @@
+{"level": "INFO", "logger": "dataset", "message": "Prepared dataset manifest from config: configs/experiments/dev_macos.yaml"}
+{"level": "INFO", "logger": "training", "message": "Completed smoke training run from config: configs/experiments/dev_macos.yaml"}

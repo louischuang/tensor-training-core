@@ -1,0 +1,4 @@
+{"level": "INFO", "logger": "tensorflow", "message": "Assets written to: /tmp/tmpgm7e7ek8/assets"}
+{"level": "INFO", "logger": "tensorflow", "message": "Assets written to: /tmp/tmphm_pvfmg/assets"}
+{"level": "INFO", "logger": "tensorflow", "message": "Assets written to: /tmp/tmpl4sqkh_w/assets"}
+{"level": "INFO", "logger": "export", "message": "Completed TFLite export from config: configs/experiments/train_tensorflow_esp32_cam_dev.yaml"}

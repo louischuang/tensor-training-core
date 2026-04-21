@@ -1,0 +1,11 @@
+FROM python:3.11-slim
+
+WORKDIR /workspace
+
+COPY requirements /workspace/requirements
+RUN pip install --no-cache-dir -r /workspace/requirements/cuda.txt
+
+COPY . /workspace
+RUN pip install --no-cache-dir -e .
+
+ENTRYPOINT ["/workspace/docker/entrypoint.sh"]

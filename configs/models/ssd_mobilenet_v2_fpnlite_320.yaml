@@ -1,0 +1,13 @@
+model:
+  name: ssd_mobilenet_v2_fpnlite_320x320
+  family: mobilenet
+  image_size: [320, 320]
+  num_classes: 5
+  max_detections: 5
+  anchors:
+    - {cx: 0.20, cy: 0.20, w: 0.22, h: 0.22}
+    - {cx: 0.50, cy: 0.20, w: 0.28, h: 0.24}
+    - {cx: 0.50, cy: 0.50, w: 0.36, h: 0.36}
+    - {cx: 0.20, cy: 0.50, w: 0.24, h: 0.32}
+    - {cx: 0.75, cy: 0.55, w: 0.30, h: 0.30}
+  pretrained_checkpoint: ""

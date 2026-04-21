@@ -1,0 +1,10 @@
+training:
+  backend: tensorflow
+  seed: 42
+  batch_size: 4
+  epochs: 1
+  learning_rate: 0.001
+  runtime: cuda
+  experiment_name: tensorflow_dev
+  checkpoint_name: latest.keras
+  max_samples: 64

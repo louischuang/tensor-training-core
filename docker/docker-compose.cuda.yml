@@ -1,0 +1,9 @@
+services:
+  trainer:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cuda
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+    command: ["python", "-m", "tensor_training_core.cli"]

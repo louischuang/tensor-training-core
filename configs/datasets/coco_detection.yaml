@@ -1,0 +1,9 @@
+name: coco_detection_sample
+dataset:
+  format: coco
+  dataset_root: tests/fixtures/sample_coco
+  annotations: annotations/instances_train.json
+  images_dir: images
+  label_map_output: data/manifests/sample_label_map.json
+  manifest_output: data/manifests/sample_train.jsonl
+  metadata_output: data/manifests/sample_dataset_metadata.json

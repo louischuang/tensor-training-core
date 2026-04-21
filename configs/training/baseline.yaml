@@ -1,0 +1,9 @@
+training:
+  backend: smoke
+  seed: 42
+  batch_size: 8
+  epochs: 3
+  learning_rate: 0.001
+  runtime: macos
+  experiment_name: baseline
+  checkpoint_name: latest.ckpt
