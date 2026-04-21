@@ -1,138 +1,265 @@
 # Tensor Training Core
 
-Tensor Training Core is a planned TensorFlow-based training repository for TensorFlow Lite object detection models.
+Language versions: [English](./README.md) | [繁體中文](./README.zh-TW.md) | [简体中文](./README.zh-CN.md) | [日本語](./README.ja.md)
 
-## Definitions
+Tensor Training Core is a TensorFlow Lite object detection training repository focused on one practical baseline:
+
+- COCO-format dataset import
+- MobileNet-based object detection training
+- evaluation and report generation
+- TensorFlow Lite export
+- iOS and Android mobile asset bundles
+- shared Python service layer, CLI, API, and agent-facing skill contract
+
+## What This Repository Does
+
+The repository is designed for one shared workflow that can run on:
+
+- Apple Silicon macOS for development and validation
+- x64 Linux Docker environments for heavier training
+
+The current implemented flow is:
+
+1. Import and validate a COCO-format dataset
+2. Normalize it into an internal manifest
+3. Split it into train / val / test manifests
+4. Train a MobileNet-based detector
+5. Evaluate the checkpoint and generate reports
+6. Export TensorFlow Lite models
+7. Package iOS and Android integration bundles
+8. Verify inference on exported TFLite models
+
+## Repository Structure
+
+```text
+configs/                 YAML configs for dataset, model, training, and experiments
+data/                    Raw datasets, manifests, and dataset metadata
+docker/                  Docker build and runtime files
+scripts/                 Helper scripts for setup and execution
+src/tensor_training_core/
+  api/                   FastAPI application and routes
+  config/                Config loader and schema
+  data/                  Dataset adapters, validation, conversion, and split logic
+  evaluation/            Evaluation metrics and reports
+  export/                TFLite, SavedModel, labels, and mobile export helpers
+  inference/             TFLite verification and preview rendering
+  interfaces/            Shared service layer, DTOs, and job records
+  mobile/                Android and iOS bundle writers
+  training/              Training runner, callbacks, and augmentation
+artifacts/               Generated experiments, reports, logs, jobs, and bundles
+tests/                   Unit tests
+```
+
+## Core Concepts
 
 - `dataset`: images plus labeling files that can be imported into training
-- `internal manifest`: the normalized project-owned metadata generated from an imported dataset for training and reproducibility
+- `internal manifest`: normalized project-owned metadata generated from an imported dataset
+- `job`: a tracked execution record stored under `artifacts/jobs/`
+- `artifact`: generated files stored under `artifacts/experiments/`, `artifacts/reports/`, and `artifacts/logs/`
 
-## Delivery Plan
+## Current Implemented Features
 
-Phase 1:
+### Dataset Pipeline
 
-- build the workflow as Python modules
-- confirm the end-to-end flow and core functionality are complete
+- COCO dataset validation
+- annotation quality checks and cleaning report output
+- manifest generation
+- dataset metadata output
+- train / val / test split generation
 
-Phase 2:
+### Training
 
-- add CLI
-- add HTTP API
-- finalize `SKILL.md` for third-party platforms and AI agents
+- MobileNet-based baseline detector
+- TensorFlow training backend
+- training logs and per-run artifacts
+- pretrained checkpoint loading
+- resume-training support
+- checkpoint and TensorBoard output
 
-## First Baseline
+### Evaluation
 
-- MobileNet-based object detection
-- COCO dataset import
-- TensorFlow Lite export
-- deployment packaging for iOS and Android
-- cross-platform execution on:
-  - macOS Apple Silicon for development
-  - x64 Linux + CUDA Docker for heavier training
+- precision / recall / mAP50 metrics
+- evaluation preview images
+- evaluation reports under `artifacts/reports/`
 
-## Project Goals
+### Export and Mobile Packaging
 
-- train a MobileNet-based object detection model
-- convert COCO-format datasets into a project-owned internal manifest
-- export TensorFlow Lite models for mobile usage
-- package model assets so iOS and Android apps can integrate them more easily
-- keep one shared codebase for macOS development and CUDA Docker training
-- add CLI, API, and `SKILL.md` only after the Python module workflow is proven
+- SavedModel export
+- TFLite export for `float32`, `float16`, and `int8`
+- `label.txt` generation
+- mobile bundles for iOS and Android
+- integration assumptions and bundle verification files
 
-## Planned Baseline Stack
+### Interfaces
 
-- TensorFlow 2.x
-- TensorFlow Models Object Detection API
-- MobileNet-based SSD detector
-- TensorFlow Lite export
-- TensorFlow Lite Support / metadata tooling for mobile deployment
-- COCO import and conversion pipeline
+- shared service layer for all operations
+- package CLI
+- FastAPI application skeleton with working routes
+- `SKILL.md` for agent and third-party integration
 
-## Planned Workflow
+## Quick Start
 
-1. Import a COCO dataset into `data/raw/`
-2. Validate and normalize annotations
-3. Convert the dataset into an internal manifest
-4. Build training-ready records
-5. Train a MobileNet object detection model
-6. Evaluate the trained checkpoint
-7. Export to TensorFlow Lite
-8. Generate mobile deployment bundles for iOS and Android
-9. Run TFLite inference smoke tests
-10. After the Python module workflow is validated, expose stable operations through CLI, API, and `SKILL.md`
+### 1. Install Dependencies
 
-## Planned External Interfaces
+For local development:
 
-These are phase-2 items and should be added only after the Python module workflow is stable:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -e .[dev]
+```
 
-- CLI for operators, scripts, and automation pipelines
-- HTTP API for third-party platforms and remote orchestration
-- `SKILL.md` for AI agents and agent-capable platforms
+For Docker-based training:
 
-The intended rule is simple:
+```bash
+docker build -t tensor-training-core-tf:latest -f docker/Dockerfile.cuda .
+```
 
-- core business logic lives in shared Python service modules
-- CLI commands call the shared service modules
-- API routes call the same shared service modules
-- `SKILL.md` documents how an agent should use the CLI or API safely
+### 2. Prepare a Dataset
 
-## Logging Note
+Example:
 
-Logging is part of the plan already, but it will be expanded incrementally as each stage becomes real:
+```bash
+python -m tensor_training_core.cli dataset prepare --config configs/experiments/train_tensorflow_esp32_cam_dev.yaml
+```
 
-- phase-1 module logging for dataset, training, export, and failures
-- phase-2 extension for CLI and API correlation fields
+### 3. Run Training
 
-## Repository and License Review
+```bash
+python -m tensor_training_core.cli train run --config configs/experiments/train_tensorflow_esp32_cam_dev.yaml
+```
 
-The following upstream repositories are good candidates for this project baseline. Based on the currently published repository metadata and license files, these code repositories use permissive licenses that are generally suitable for internal use and commercial projects, subject to normal license compliance requirements such as preserving notices and attribution where required.
+### 4. Run Evaluation
 
-| Package / Project | Purpose in this repo | Repository | Observed license | Usage note |
-| --- | --- | --- | --- | --- |
-| TensorFlow | Core training and export framework | [tensorflow/tensorflow](https://github.com/tensorflow/tensorflow) | Apache-2.0 | Permissive; commonly usable in commercial and internal projects |
-| TensorFlow Models | Object Detection API and MobileNet detection configs | [tensorflow/models](https://github.com/tensorflow/models) | Apache-2.0 | Permissive; suitable for baseline training integration |
-| KerasCV | Optional future CV utilities and models | [keras-team/keras-cv](https://github.com/keras-team/keras-cv) | Apache-2.0 | Permissive; optional for later expansion |
-| TensorFlow Lite Support | TFLite metadata and mobile helper tooling | [tensorflow/tflite-support](https://github.com/tensorflow/tflite-support) | Apache-2.0 | Permissive; useful for iOS / Android packaging and metadata |
-| COCO API / pycocotools | Parsing and validating COCO annotations | [cocodataset/cocoapi](https://github.com/cocodataset/cocoapi) | Simplified BSD | Permissive; suitable for dataset conversion tooling |
+```bash
+python -m tensor_training_core.cli evaluate run --config configs/experiments/train_tensorflow_esp32_cam_dev.yaml
+```
 
-## Dataset License Note
+### 5. Export TFLite
 
-COCO is appropriate as the first supported dataset format, but dataset usage should be handled carefully:
+```bash
+python -m tensor_training_core.cli export tflite --config configs/experiments/train_tensorflow_esp32_cam_dev.yaml
+```
 
-- the COCO annotation tooling and COCO API are permissively licensed
-- the COCO dataset itself has terms of use and the images originate from upstream sources with their own licensing and attribution implications
-- for internal experimentation and format support this is usually workable, but redistribution and production dataset usage should be reviewed against the COCO terms and your product's compliance requirements
+### 6. Package Mobile Assets
 
-Because of that, this project will support COCO-format import, while keeping the internal manifest separate from the raw source dataset.
+```bash
+python -m tensor_training_core.cli export mobile --config configs/experiments/train_tensorflow_esp32_cam_dev.yaml
+```
 
-## Planned Output Artifacts
+## CLI Commands
 
-- trained checkpoints
-- evaluation reports
-- exported `.tflite` model
-- label map
-- metadata JSON
-- iOS mobile bundle
-- Android mobile bundle
-- logs
+```text
+tensor-training-core dataset import-coco --config <path>
+tensor-training-core dataset prepare --config <path>
+tensor-training-core train run --config <path>
+tensor-training-core train status --job-id <id>
+tensor-training-core evaluate run --config <path>
+tensor-training-core export tflite --config <path>
+tensor-training-core export mobile --config <path>
+tensor-training-core artifact list --limit <n>
+tensor-training-core artifact describe --artifact <path>
+tensor-training-core serve api
+```
 
-## Current Status
+Wrapper scripts are also available:
 
-The repository currently contains planning documents only:
+- `scripts/run_cli.sh`
+- `scripts/serve_api.sh`
+- `scripts/prepare_coco.sh`
+- `scripts/train.sh`
+- `scripts/evaluate.sh`
+- `scripts/export_tflite.sh`
+- `scripts/package_mobile_assets.sh`
+
+## HTTP API
+
+Current routes:
+
+```text
+GET  /health
+POST /datasets/import/coco
+POST /datasets/prepare
+POST /training/jobs
+GET  /training/jobs/{job_id}
+POST /exports/tflite
+POST /exports/mobile-bundle
+GET  /artifacts/{job_id}
+```
+
+Example request:
+
+```json
+{
+  "config_path": "configs/experiments/train_tensorflow_esp32_cam_dev.yaml"
+}
+```
+
+Start the API:
+
+```bash
+python -m tensor_training_core.cli serve api
+```
+
+or:
+
+```bash
+scripts/serve_api.sh
+```
+
+## Important Output Locations
+
+- Jobs: `artifacts/jobs/`
+- Experiment runs: `artifacts/experiments/<experiment_id>/<run_id>/`
+- Reports: `artifacts/reports/<experiment_id>/<run_id>/`
+- Logs: `artifacts/logs/<run_id>/`
+- API request log: `artifacts/logs/api/requests.jsonl`
+
+Typical generated outputs include:
+
+- checkpoints
+- `training_summary.json`
+- `evaluation_summary.json`
+- evaluation preview images
+- SavedModel export
+- `.tflite` files
+- `label.txt`
+- mobile bundle files
+- structured logs and failure summaries
+
+## Key Documents
 
 - [Architecture Plan](./ARCHITECTURE.md)
 - [TODO List](./TODO.md)
-- [Skill Draft](./SKILL.md)
+- [Agent Skill Contract](./SKILL.md)
 
-## Sources Checked
+## Dataset and License Notes
 
-- [TensorFlow GitHub repository](https://github.com/tensorflow/tensorflow)
-- [TensorFlow Models GitHub repository](https://github.com/tensorflow/models)
-- [KerasCV GitHub repository](https://github.com/keras-team/keras-cv)
-- [TensorFlow Lite Support GitHub repository](https://github.com/tensorflow/tflite-support)
-- [COCO API GitHub repository](https://github.com/cocodataset/cocoapi)
-- [COCO official site](https://cocodataset.org/)
+This repository supports COCO-format import, but dataset usage still needs review:
+
+- the COCO API and code tooling are permissively licensed
+- the COCO dataset itself has separate terms of use
+- image sources may have attribution or redistribution implications
+
+Keep raw datasets separate from project-owned manifests and generated artifacts.
+
+## Upstream Projects and License Review
+
+The following upstream repositories are relevant to this project. Based on their published repository metadata and license files, these repositories use permissive licenses that are generally suitable for internal or commercial projects, subject to normal compliance requirements.
+
+| Package / Project | Purpose in this repo | Repository | Observed license | Usage note |
+| --- | --- | --- | --- | --- |
+| TensorFlow | Core training and export framework | [tensorflow/tensorflow](https://github.com/tensorflow/tensorflow) | Apache-2.0 | Permissive; commonly suitable for internal and commercial projects |
+| TensorFlow Models | Object detection reference implementations | [tensorflow/models](https://github.com/tensorflow/models) | Apache-2.0 | Useful reference for future model alignment |
+| KerasCV | Optional future CV utilities | [keras-team/keras-cv](https://github.com/keras-team/keras-cv) | Apache-2.0 | Optional future expansion |
+| TensorFlow Lite Support | Mobile metadata and TFLite helper tooling | [tensorflow/tflite-support](https://github.com/tensorflow/tflite-support) | Apache-2.0 | Useful for mobile metadata workflows |
+| COCO API / pycocotools | COCO parsing and validation | [cocodataset/cocoapi](https://github.com/cocodataset/cocoapi) | Simplified BSD | Suitable for dataset conversion tooling |
+
+## Status
+
+This repository is no longer documentation-only. The baseline Python workflow, CLI, API skeleton, and agent-facing contract are implemented. The next steps are mostly around CI, documentation expansion, and deeper production hardening.
 
 ## License Reminder
 
-This README is a planning aid, not legal advice. Before shipping a product, we should still do one final dependency and dataset license review with the exact versions and assets actually used.
+This README is an engineering summary, not legal advice. Before shipping a product, do a final review of exact dependency versions, model assets, and dataset licenses actually used.
