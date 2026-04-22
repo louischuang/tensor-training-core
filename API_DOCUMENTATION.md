@@ -154,3 +154,5 @@ Example:
   - `GET /training/jobs/{job_id}` for state polling
   - `GET /training/jobs/{job_id}/logs` for snapshot reads
   - `GET /training/jobs/{job_id}/logs/stream` for SSE-based log streaming
+- Export responses now include `model_card_path` and `license_metadata_path` so downstream platforms can carry model usage notes and license caveats with the artifact bundle.
+- Export responses also include `benchmark_report_path` with model size, latency, and estimated working-set information for each quantization target.

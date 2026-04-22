@@ -242,6 +242,9 @@ Typical generated outputs include:
 - SavedModel export
 - `.tflite` files
 - `label.txt`
+- `MODEL_CARD.md`
+- `license_metadata.json`
+- `benchmark_report.json`
 - mobile bundle files
 - structured logs and failure summaries
 

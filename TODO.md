@@ -202,13 +202,13 @@ These items are already mapped into Phases 2, 4, 5, 6, 8, 9, 11, and 15 above an
 
 ### Strongly Recommended
 
-- [ ] Add iOS sample integration project or minimal usage example
-- [ ] Add Android sample integration project or minimal usage example
-- [ ] Add latency, model size, and memory benchmark reporting
-- [ ] Add asynchronous job execution design for API-triggered long-running tasks
-- [ ] Add model registry / model version management
-- [ ] Add retry and auto-resume strategy for failed training or export jobs
-- [ ] Add model card and license metadata generation in exported artifacts
+- [x] Add model card and license metadata generation in exported artifacts
+- [x] Add latency, model size, and memory benchmark reporting
+- [ ] Add Android minimal integration example for TFLite deployment
+- [ ] Add iOS minimal integration example for TFLite deployment
+- [ ] Add model registry contract and versioned model index
+- [ ] Add API/job-level retry policy and export recovery flow
+- [ ] Harden asynchronous job execution for API-triggered long-running tasks
 
 ### Nice To Have Later
 

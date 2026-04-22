@@ -10,6 +10,13 @@ import numpy as np
 from PIL import Image
 
 from tensor_training_core.config.schema import DatasetConfig, ModelConfig
+from tensor_training_core.export.benchmark import build_benchmark_report
+from tensor_training_core.export.compliance import (
+    build_license_metadata,
+    build_model_card,
+    write_license_metadata,
+    write_model_card,
+)
 from tensor_training_core.data.manifest.reader import read_manifest
 from tensor_training_core.export.labels import write_label_txt
 from tensor_training_core.export.metadata import build_export_metadata, write_json_file
@@ -99,6 +106,9 @@ def export_tflite_model(
         quantized_outputs["saved_model_dir"] = str(saved_model_dir)
         logger.info("export_saved_model_completed saved_model_dir=%s", saved_model_dir)
 
+        model_card_path = export_dir / "MODEL_CARD.md"
+        license_metadata_path = export_dir / "license_metadata.json"
+
         for quantization in ("float32", "float16", "int8"):
             tflite_bytes = _convert_quantized_model(tf, model, quantization, manifest_path, image_size)
             tflite_path = export_dir / f"{model_config.model.name}_{quantization}.tflite"
@@ -112,6 +122,20 @@ def export_tflite_model(
                 quantization=quantization,
             )
             write_json_file(metadata_path, metadata)
+            if quantization == "float32":
+                model_card = build_model_card(
+                    model_config=model_config,
+                    dataset_config=dataset_config,
+                    quantization=quantization,
+                    metadata_path=metadata_path,
+                )
+                write_model_card(model_card_path, model_card)
+                license_metadata = build_license_metadata(
+                    model_config=model_config,
+                    dataset_config=dataset_config,
+                    quantization=quantization,
+                )
+                write_license_metadata(license_metadata_path, license_metadata)
             export_index["exports"][quantization] = {
                 "tflite_path": str(tflite_path),
                 "metadata_path": str(metadata_path),
@@ -127,10 +151,22 @@ def export_tflite_model(
 
         export_manifest_path = export_dir / "export_manifest.json"
         write_json_file(export_manifest_path, export_index)
+        benchmark_report_path = export_dir / "benchmark_report.json"
+        benchmark_report = build_benchmark_report(
+            tf=tf,
+            export_manifest_path=export_manifest_path,
+            manifest_path=manifest_path,
+            image_size=image_size,
+        )
+        write_json_file(benchmark_report_path, benchmark_report)
         logger.info("export_manifest_completed export_manifest_path=%s", export_manifest_path)
+        logger.info("export_benchmark_completed benchmark_report_path=%s", benchmark_report_path)
         quantized_outputs["checkpoint_path"] = str(checkpoint_path)
         quantized_outputs["export_manifest_path"] = str(export_manifest_path)
+        quantized_outputs["benchmark_report_path"] = str(benchmark_report_path)
         quantized_outputs["label_txt_path"] = str(label_txt_path)
+        quantized_outputs["model_card_path"] = str(model_card_path)
+        quantized_outputs["license_metadata_path"] = str(license_metadata_path)
         quantized_outputs["failure_summary_path"] = ""
         return quantized_outputs
     except Exception as exc:

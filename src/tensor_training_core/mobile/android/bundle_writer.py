@@ -12,12 +12,18 @@ def write_android_bundle(
     tflite_path: str | Path,
     label_map_path: str | Path,
     metadata_path: str | Path,
+    model_card_path: str | Path,
+    license_metadata_path: str | Path,
+    benchmark_report_path: str | Path,
 ) -> Path:
     bundle_dir = Path(output_dir)
     bundle_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(tflite_path, bundle_dir / "model.tflite")
     shutil.copy2(label_map_path, bundle_dir / "label_map.json")
     shutil.copy2(metadata_path, bundle_dir / "export_metadata.json")
+    shutil.copy2(model_card_path, bundle_dir / "MODEL_CARD.md")
+    shutil.copy2(license_metadata_path, bundle_dir / "license_metadata.json")
+    shutil.copy2(benchmark_report_path, bundle_dir / "benchmark_report.json")
     write_label_txt(bundle_dir / "label.txt", label_map_path)
     assumptions_path = bundle_dir / "INTEGRATION.md"
     assumptions_path.write_text(
@@ -45,6 +51,9 @@ def write_android_bundle(
                     "label.txt",
                     "label_map.json",
                     "export_metadata.json",
+                    "MODEL_CARD.md",
+                    "license_metadata.json",
+                    "benchmark_report.json",
                     "INTEGRATION.md",
                 ],
                 "status": "ready",

@@ -43,12 +43,18 @@ def package_mobile_bundles(
                 tflite_path=export_info["tflite_path"],
                 label_map_path=label_map_path,
                 metadata_path=export_info["metadata_path"],
+                model_card_path=export_dir / "MODEL_CARD.md",
+                license_metadata_path=export_dir / "license_metadata.json",
+                benchmark_report_path=export_dir / "benchmark_report.json",
             )
             ios_dir = write_ios_bundle(
                 output_dir=mobile_dir / "ios" / quantization,
                 tflite_path=export_info["tflite_path"],
                 label_map_path=label_map_path,
                 metadata_path=export_info["metadata_path"],
+                model_card_path=export_dir / "MODEL_CARD.md",
+                license_metadata_path=export_dir / "license_metadata.json",
+                benchmark_report_path=export_dir / "benchmark_report.json",
             )
             outputs[f"android_bundle_dir_{quantization}"] = str(android_dir)
             outputs[f"ios_bundle_dir_{quantization}"] = str(ios_dir)
