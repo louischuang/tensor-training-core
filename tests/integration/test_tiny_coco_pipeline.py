@@ -11,6 +11,7 @@ from tensor_training_core.interfaces.service import TrainingService
 
 
 SMOKE_CONFIG = "configs/experiments/dev_macos.yaml"
+TINY_EFFICIENTNET_CONFIG = "configs/experiments/test_tiny_efficientnet_tensorflow.yaml"
 
 
 def test_tiny_coco_end_to_end_pipeline() -> None:
@@ -124,3 +125,18 @@ def test_phase2_cli_contracts_machine_readable_output(tmp_path: Path) -> None:
     )
     artifact_payload = json.loads(artifact.stdout)
     assert artifact_payload["is_dir"] is False
+
+
+def test_tiny_coco_pipeline_supports_second_detector_family() -> None:
+    pytest.importorskip("tensorflow")
+    service = TrainingService()
+
+    imported = service.import_coco_dataset(TINY_EFFICIENTNET_CONFIG)
+    prepared = service.prepare_dataset(TINY_EFFICIENTNET_CONFIG)
+    trained = service.train(TINY_EFFICIENTNET_CONFIG)
+
+    assert imported.status == "completed"
+    assert prepared.status == "completed"
+    assert trained.status == "completed"
+    assert Path(trained.outputs["checkpoint_path"]).exists()
+    assert trained.outputs["summary_path"].endswith("training_summary.json")

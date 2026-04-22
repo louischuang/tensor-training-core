@@ -85,6 +85,30 @@ class FakeService:
             outputs={"manifest_path": "artifacts/retried_manifest.jsonl"},
         )
 
+    def get_dashboard_data(self, job_limit: int = 20) -> dict[str, object]:
+        return {
+            "job_count": 2,
+            "model_count": 1,
+            "model_registry_index_path": "artifacts/models/index.json",
+            "jobs": [
+                {
+                    "job_id": "job_test_123",
+                    "operation": "train",
+                    "state": "completed",
+                    "updated_at": "2026-04-22T00:00:00Z",
+                    "config_path": "configs/example.yaml",
+                }
+            ],
+            "models": [
+                {
+                    "model_key": "exp_a/detector_efficientnet_b0_320x320",
+                    "latest_version_id": "20260422T000000Z_abcd1234",
+                    "version_count": 3,
+                    "latest_descriptor_path": "artifacts/models/exp_a/detector_efficientnet_b0_320x320/latest.json",
+                }
+            ],
+        }
+
 
 class FakeAsyncConflictService(FakeService):
     def start_training_job_async(self, config_path: str) -> FakeJob:
@@ -191,3 +215,16 @@ def test_training_logs_stream_endpoint_returns_sse_events() -> None:
     assert "event: log" in text
     assert "training_started total_epochs=4" in text or "training_epoch_completed epoch=1/4" in text
     assert "event: status" in text
+
+
+def test_dashboard_endpoint_renders_recent_jobs_and_models() -> None:
+    app = create_app()
+    app.state.service = FakeService()
+    client = TestClient(app)
+
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert "Tensor Training Core Dashboard" in response.text
+    assert "job_test_123" in response.text
+    assert "detector_efficientnet_b0_320x320" in response.text

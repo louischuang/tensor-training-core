@@ -20,6 +20,73 @@ from tensor_training_core.utils.paths import resolve_repo_path
 from tensor_training_core.utils.seed import seed_everything
 
 
+AUGMENTATION_PRESETS: dict[str, dict[str, float | bool]] = {
+    "disabled": {
+        "enabled": False,
+        "horizontal_flip_prob": 0.0,
+        "brightness_delta": 0.0,
+        "contrast_min": 1.0,
+        "contrast_max": 1.0,
+    },
+    "light": {
+        "enabled": True,
+        "horizontal_flip_prob": 0.25,
+        "brightness_delta": 0.04,
+        "contrast_min": 0.95,
+        "contrast_max": 1.05,
+    },
+    "standard": {
+        "enabled": True,
+        "horizontal_flip_prob": 0.5,
+        "brightness_delta": 0.08,
+        "contrast_min": 0.9,
+        "contrast_max": 1.15,
+    },
+    "aggressive": {
+        "enabled": True,
+        "horizontal_flip_prob": 0.5,
+        "brightness_delta": 0.12,
+        "contrast_min": 0.8,
+        "contrast_max": 1.25,
+    },
+}
+
+
+def resolve_augmentation_settings(augmentation: AugmentationSettings) -> AugmentationSettings:
+    preset_name = augmentation.preset or "custom"
+    if preset_name == "custom":
+        return augmentation
+    if preset_name not in AUGMENTATION_PRESETS:
+        raise ValueError(f"Unsupported augmentation preset: {preset_name}")
+
+    defaults = AUGMENTATION_PRESETS[preset_name]
+    field_defaults = AugmentationSettings()
+    return AugmentationSettings(
+        preset=preset_name,
+        enabled=augmentation.enabled if augmentation.enabled != field_defaults.enabled else bool(defaults["enabled"]),
+        horizontal_flip_prob=(
+            augmentation.horizontal_flip_prob
+            if augmentation.horizontal_flip_prob != field_defaults.horizontal_flip_prob
+            else float(defaults["horizontal_flip_prob"])
+        ),
+        brightness_delta=(
+            augmentation.brightness_delta
+            if augmentation.brightness_delta != field_defaults.brightness_delta
+            else float(defaults["brightness_delta"])
+        ),
+        contrast_min=(
+            augmentation.contrast_min
+            if augmentation.contrast_min != field_defaults.contrast_min
+            else float(defaults["contrast_min"])
+        ),
+        contrast_max=(
+            augmentation.contrast_max
+            if augmentation.contrast_max != field_defaults.contrast_max
+            else float(defaults["contrast_max"])
+        ),
+    )
+
+
 def run_smoke_training(
     context: RunContext,
     training_config: TrainingConfig,
@@ -305,6 +372,7 @@ def run_tensorflow_training(
         image_size = tuple(model_config.model.image_size)
         anchors = load_anchor_array(model_config)
         max_detections = int(model_config.model.max_detections)
+        resolved_augmentation = resolve_augmentation_settings(training_config.training.augmentation)
         rows = apply_sample_limit(load_training_samples(manifest_path), training_config.training.max_samples)
         if not rows:
             raise ValueError("Training manifest is empty; cannot start TensorFlow training.")
@@ -363,7 +431,7 @@ def run_tensorflow_training(
             anchors,
             model_config.model.anchor_match_iou_threshold,
             training_config.training.seed,
-            training_config.training.augmentation,
+            resolved_augmentation,
         )
         progress_callback = build_training_progress_callback(
             tf,
@@ -386,13 +454,14 @@ def run_tensorflow_training(
             logger.warning("tensorboard_unavailable tensorboard metrics logging will be skipped")
 
         logger.info(
-            "training_configuration manifest_path=%s record_count=%s batch_size=%s epochs=%s max_detections=%s augmentation_enabled=%s tensorboard_enabled=%s resumed_from_checkpoint=%s pretrained_loaded_from=%s",
+            "training_configuration manifest_path=%s record_count=%s batch_size=%s epochs=%s max_detections=%s augmentation_enabled=%s augmentation_preset=%s tensorboard_enabled=%s resumed_from_checkpoint=%s pretrained_loaded_from=%s",
             manifest_path,
             len(rows),
             training_config.training.batch_size,
             training_config.training.epochs,
             max_detections,
-            training_config.training.augmentation.enabled,
+            resolved_augmentation.enabled,
+            resolved_augmentation.preset,
             tensorboard_active,
             resumed_from_checkpoint,
             pretrained_loaded_from or model_config.model.pretrained_checkpoint or "",
@@ -432,7 +501,8 @@ def run_tensorflow_training(
             "num_classes": int(model_config.model.num_classes),
             "max_detections": max_detections,
             "max_samples": training_config.training.max_samples,
-            "augmentation_enabled": training_config.training.augmentation.enabled,
+            "augmentation_enabled": resolved_augmentation.enabled,
+            "augmentation_preset": resolved_augmentation.preset,
             "tensorboard_dir": str(tensorboard_dir) if tensorboard_active else "",
             "resumed_from_checkpoint": resumed_from_checkpoint,
             "pretrained_loaded_from": pretrained_loaded_from or model_config.model.pretrained_checkpoint or "",

@@ -27,6 +27,11 @@ def test_load_training_config_with_augmentation_settings() -> None:
     from tensor_training_core.config.loader import load_training_config
 
     config = load_training_config("configs/training/tensorflow_full.yaml")
-    assert config.training.augmentation.enabled is True
-    assert config.training.augmentation.horizontal_flip_prob == 0.5
+    assert config.training.augmentation.preset == "aggressive"
     assert config.training.batch_size == 16
+
+
+def test_load_model_config_for_second_detector_family() -> None:
+    config = load_model_config("configs/models/detector_efficientnet_b0_320.yaml")
+    assert config.model.family == "efficientnet"
+    assert config.model.max_detections == 8

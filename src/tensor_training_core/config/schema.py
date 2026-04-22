@@ -72,6 +72,7 @@ class ModelConfig(BaseModel):
 
 
 class AugmentationSettings(BaseModel):
+    preset: str = "custom"
     enabled: bool = False
     horizontal_flip_prob: float = 0.0
     brightness_delta: float = 0.0

@@ -8,8 +8,4 @@ training:
   experiment_name: tensorflow_baseline
   checkpoint_name: latest.keras
   augmentation:
-    enabled: true
-    horizontal_flip_prob: 0.5
-    brightness_delta: 0.08
-    contrast_min: 0.9
-    contrast_max: 1.15
+    preset: standard

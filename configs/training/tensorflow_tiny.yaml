@@ -10,8 +10,4 @@ training:
   max_samples: 1
   tensorboard_enabled: false
   augmentation:
-    enabled: false
-    horizontal_flip_prob: 0.0
-    brightness_delta: 0.0
-    contrast_min: 1.0
-    contrast_max: 1.0
+    preset: disabled

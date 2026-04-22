@@ -4,6 +4,7 @@ import json
 from fastapi import FastAPI, Request
 
 from tensor_training_core.api.routes.datasets import router as dataset_router
+from tensor_training_core.api.routes.dashboard import router as dashboard_router
 from tensor_training_core.api.routes.exports import router as export_router
 from tensor_training_core.api.routes.health import router as health_router
 from tensor_training_core.api.routes.training import router as training_router
@@ -82,4 +83,5 @@ def create_app() -> FastAPI:
     app.include_router(dataset_router)
     app.include_router(training_router)
     app.include_router(export_router)
+    app.include_router(dashboard_router)
     return app

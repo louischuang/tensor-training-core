@@ -212,7 +212,7 @@ These items are already mapped into Phases 2, 4, 5, 6, 8, 9, 11, and 15 above an
 
 ### Nice To Have Later
 
-- [ ] Add advanced augmentation policy presets
-- [ ] Add API authentication and access control planning
-- [ ] Add support for additional detector families beyond MobileNet baseline
-- [ ] Add artifact browsing UI or dashboard
+- [x] Add configurable augmentation presets for train-time experiments
+- [x] Add support for additional detector families beyond MobileNet baseline
+- [x] Add API authentication and access control planning
+- [x] Add artifact browsing UI or dashboard

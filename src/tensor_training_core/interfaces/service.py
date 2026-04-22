@@ -23,7 +23,7 @@ from tensor_training_core.interfaces.dto import OperationResult, RunContext
 from tensor_training_core.interfaces.jobs import JobRecord, JobStore
 from tensor_training_core.training.runner import run_smoke_training, run_tensorflow_training
 from tensor_training_core.utils.logging import get_logger, initialize_run_logging
-from tensor_training_core.utils.paths import ensure_run_context, resolve_repo_path
+from tensor_training_core.utils.paths import MODELS_DIR, ensure_run_context, resolve_repo_path, to_repo_relative_path
 
 
 class TrainingService:
@@ -481,6 +481,37 @@ class TrainingService:
 
     def list_jobs(self) -> list[JobRecord]:
         return self.job_store.list()
+
+    def get_dashboard_data(self, *, job_limit: int = 20) -> dict[str, object]:
+        jobs = self.list_jobs()
+        recent_jobs = []
+        for job in jobs[-job_limit:]:
+            recent_jobs.append(
+                {
+                    "job_id": job.job_id,
+                    "operation": job.operation,
+                    "state": job.state,
+                    "attempt": job.attempt,
+                    "retry_of": job.retry_of,
+                    "config_path": job.config_path,
+                    "updated_at": job.updated_at,
+                    "artifact_dir": to_repo_relative_path(job.outputs.get("artifact_dir", "")),
+                    "log_dir": to_repo_relative_path(job.outputs.get("log_dir", "")),
+                }
+            )
+
+        model_index_path = MODELS_DIR / "index.json"
+        model_registry = {"models": []}
+        if model_index_path.exists():
+            model_registry = json.loads(model_index_path.read_text(encoding="utf-8"))
+
+        return {
+            "jobs": list(reversed(recent_jobs)),
+            "job_count": len(jobs),
+            "model_count": len(model_registry.get("models", [])),
+            "models": model_registry.get("models", []),
+            "model_registry_index_path": to_repo_relative_path(model_index_path),
+        }
 
     def describe_artifact(self, path: str | Path) -> dict[str, object]:
         artifact_path = resolve_repo_path(path)

@@ -9,6 +9,7 @@ Available documentation endpoints after the API server starts:
 - Swagger UI: `/docs`
 - ReDoc: `/redoc`
 - OpenAPI JSON: `/openapi.json`
+- Dashboard: `/dashboard`
 
 Start the API locally:
 
@@ -21,6 +22,7 @@ Then open:
 - [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
 - [http://127.0.0.1:8000/openapi.json](http://127.0.0.1:8000/openapi.json)
+- [http://127.0.0.1:8000/dashboard](http://127.0.0.1:8000/dashboard)
 
 ## Request Model
 
@@ -175,3 +177,4 @@ Example:
 - Export responses now include `model_card_path` and `license_metadata_path` so downstream platforms can carry model usage notes and license caveats with the artifact bundle.
 - Export responses also include `benchmark_report_path` with model size, latency, and estimated working-set information for each quantization target.
 - Retrying an `export_tflite` job is the supported recovery path for export failures; it reruns export against the same experiment config and resolves the latest available checkpoint again.
+- Authentication and authorization are not enabled by default in the current repository build. For the recommended hardening path, see [docs/API_AUTH_ACCESS_CONTROL.md](./docs/API_AUTH_ACCESS_CONTROL.md).

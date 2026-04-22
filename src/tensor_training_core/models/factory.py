@@ -31,22 +31,29 @@ def build_keras_detection_model(model_config: ModelConfig):
     try:
         import tensorflow as tf
     except ModuleNotFoundError as exc:
-        raise RuntimeError("TensorFlow is required to build the MobileNet detection model.") from exc
+        raise RuntimeError("TensorFlow is required to build the detection model.") from exc
 
     spec = get_model_spec(model_config)
-    if spec.family != "mobilenet":
-        raise ValueError(f"Unsupported model family: {spec.family}")
-
     pretrained_checkpoint = model_config.model.pretrained_checkpoint.strip()
     backbone_weights = "imagenet" if pretrained_checkpoint.lower() == "imagenet" else None
 
     inputs = tf.keras.Input(shape=(spec.image_size[1], spec.image_size[0], 3), name="image")
-    backbone = tf.keras.applications.MobileNetV2(
-        include_top=False,
-        input_tensor=inputs,
-        weights=backbone_weights,
-        alpha=1.0,
-    )
+    if spec.family == "mobilenet":
+        backbone = tf.keras.applications.MobileNetV2(
+            include_top=False,
+            input_tensor=inputs,
+            weights=backbone_weights,
+            alpha=1.0,
+        )
+    elif spec.family == "efficientnet":
+        backbone = tf.keras.applications.EfficientNetB0(
+            include_top=False,
+            input_tensor=inputs,
+            weights=backbone_weights,
+        )
+    else:
+        raise ValueError(f"Unsupported model family: {spec.family}")
+
     x = backbone.output
     x = tf.keras.layers.Conv2D(256, 3, padding="same", activation="relu", name="det_head_conv")(x)
     x = tf.keras.layers.BatchNormalization(name="det_head_bn")(x)

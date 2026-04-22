@@ -71,11 +71,13 @@ tests/                   Unit tests
 ### Training
 
 - MobileNet-based baseline detector
+- EfficientNet-based secondary detector baseline
 - TensorFlow training backend
 - training logs and per-run artifacts
 - pretrained checkpoint loading
 - resume-training support
 - checkpoint and TensorBoard output
+- configurable augmentation presets for train-time experiments
 
 ### Evaluation
 
@@ -224,6 +226,8 @@ Interactive API documentation:
 - ReDoc: `http://127.0.0.1:8000/redoc`
 - OpenAPI schema: `http://127.0.0.1:8000/openapi.json`
 - Repository guide: [API_DOCUMENTATION.md](/Users/louischuang/CompanyStorage/嵐奕科技有限公司/第四處 技術處/正在進行中的專案/20260421-MyOpenSource/tensor-training-core/API_DOCUMENTATION.md)
+- Auth planning: [docs/API_AUTH_ACCESS_CONTROL.md](./docs/API_AUTH_ACCESS_CONTROL.md)
+- Dashboard: `http://127.0.0.1:8000/dashboard`
 
 For live training progress over HTTP, prefer:
 
@@ -274,6 +278,8 @@ Typical generated outputs include:
 - [iOS Minimal Integration](./docs/IOS_MINIMAL_INTEGRATION.md)
 - [Mobile Deployment](./docs/MOBILE_DEPLOYMENT.md)
 - [API Workflow](./docs/API_WORKFLOW.md)
+- [API Auth And Access Control Plan](./docs/API_AUTH_ACCESS_CONTROL.md)
+- Dashboard Route: `GET /dashboard`
 - [CLI Automation Workflow](./docs/CLI_AUTOMATION.md)
 - [Skill Usage Guide](./docs/SKILL_USAGE.md)
 

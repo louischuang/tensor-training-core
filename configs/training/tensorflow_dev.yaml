@@ -9,8 +9,4 @@ training:
   checkpoint_name: latest.keras
   max_samples: 128
   augmentation:
-    enabled: true
-    horizontal_flip_prob: 0.5
-    brightness_delta: 0.08
-    contrast_min: 0.9
-    contrast_max: 1.15
+    preset: standard
