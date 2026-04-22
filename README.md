@@ -123,6 +123,13 @@ For Docker-based training:
 docker build -t tensor-training-core-tf:latest -f docker/Dockerfile.cuda .
 ```
 
+For x86_64 NVIDIA hosts with Docker Compose:
+
+```bash
+docker compose -f docker/docker-compose.cuda.yml build
+docker compose -f docker/docker-compose.cuda.yml run --rm trainer
+```
+
 ### 2. Prepare a Dataset
 
 Example:

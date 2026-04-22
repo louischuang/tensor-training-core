@@ -1,9 +1,11 @@
-FROM python:3.11-slim
+ARG TF_GPU_IMAGE=tensorflow/tensorflow:latest-gpu
+FROM ${TF_GPU_IMAGE}
 
 WORKDIR /workspace
 
 COPY requirements /workspace/requirements
-RUN pip install --no-cache-dir -r /workspace/requirements/cuda.txt
+RUN python -m pip install --upgrade pip && \
+    pip install --no-cache-dir -r /workspace/requirements/base.txt
 
 COPY . /workspace
 RUN pip install --no-cache-dir -e .
