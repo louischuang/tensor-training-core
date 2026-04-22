@@ -59,7 +59,10 @@ def submit_training_job_async(
     request: Request,
 ) -> dict[str, object]:
     service = request.app.state.service
-    job = service.start_training_job_async(request_body.config_path)
+    try:
+        job = service.start_training_job_async(request_body.config_path)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     request.app.state.api_logger.info("api_training_job_async_started job_id=%s", job.job_id)
     return {"job": _serialize_job(job)}
 
@@ -87,6 +90,38 @@ def get_training_job_status(
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     request.app.state.api_logger.info("api_training_status_read job_id=%s state=%s", job.job_id, job.state)
+    return {"job": _serialize_job(job)}
+
+
+@router.post(
+    "/jobs/{job_id}/retry",
+    response_model=JobEnvelope,
+    summary="Retry a stored job",
+    description="Create a new job attempt from a previously completed or failed job. This is the primary recovery path for failed exports, because retrying an export job reuses the same config and resolves the latest available checkpoint again.",
+    responses={
+        200: {"description": "Retry completed and returned as a new job record."},
+        400: {
+            "model": ErrorResponse,
+            "description": "The requested job cannot be retried in its current state or operation type.",
+        },
+        404: {
+            "model": ErrorResponse,
+            "description": "The requested job ID was not found in artifacts/jobs/.",
+        },
+    },
+)
+def retry_training_job(
+    job_id: Annotated[str, Path(description="Job identifier returned by a previous operation.", examples=["job_8bb14a044cc8"])],
+    request: Request,
+) -> dict[str, object]:
+    service = request.app.state.service
+    try:
+        job = service.retry_job(job_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    request.app.state.api_logger.info("api_job_retry_completed source_job_id=%s job_id=%s", job_id, job.job_id)
     return {"job": _serialize_job(job)}
 
 

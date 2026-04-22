@@ -204,11 +204,11 @@ These items are already mapped into Phases 2, 4, 5, 6, 8, 9, 11, and 15 above an
 
 - [x] Add model card and license metadata generation in exported artifacts
 - [x] Add latency, model size, and memory benchmark reporting
-- [ ] Add Android minimal integration example for TFLite deployment
-- [ ] Add iOS minimal integration example for TFLite deployment
-- [ ] Add model registry contract and versioned model index
-- [ ] Add API/job-level retry policy and export recovery flow
-- [ ] Harden asynchronous job execution for API-triggered long-running tasks
+- [x] Add Android minimal integration example for TFLite deployment
+- [x] Add iOS minimal integration example for TFLite deployment
+- [x] Add model registry contract and versioned model index
+- [x] Add API/job-level retry policy and export recovery flow
+- [x] Harden asynchronous job execution for API-triggered long-running tasks
 
 ### Nice To Have Later
 

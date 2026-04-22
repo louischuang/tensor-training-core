@@ -31,6 +31,8 @@ class TrainingService:
 
     def __init__(self) -> None:
         self.job_store = JobStore()
+        self._async_lock = threading.Lock()
+        self._active_training_jobs: dict[str, str] = {}
 
     @staticmethod
     def _resolve_quality_report_path(dataset_config) -> Path:
@@ -381,11 +383,14 @@ class TrainingService:
             raise ValueError(f"Unsupported operation: {operation}")
 
         job = self.job_store.create(operation=operation, config_path=str(config_path))
+        return self._run_job(job, handlers[operation], config_path)
+
+    def _run_job(self, job: JobRecord, handler, config_path: str | Path) -> JobRecord:
         job.state = "running"
         job.message = "Job is running."
         self.job_store.write(job)
         try:
-            result = handlers[operation](config_path)
+            result = handler(config_path)
             job.state = "completed"
             job.message = result.message
             job.outputs = result.outputs
@@ -397,7 +402,45 @@ class TrainingService:
             self.job_store.write(job)
             raise
 
+    def retry_job(self, job_id: str) -> JobRecord:
+        original = self.job_store.read(job_id)
+        if original.state not in {"completed", "failed"}:
+            raise ValueError(f"Only completed or failed jobs can be retried: {job_id}")
+
+        handlers = {
+            "import_coco_dataset": self.import_coco_dataset,
+            "prepare_dataset": self.prepare_dataset,
+            "train": self.train,
+            "evaluate": self.evaluate,
+            "export_tflite": self.export_tflite,
+            "package_mobile_bundle": self.package_mobile_bundle,
+            "verify_inference": self.verify_inference,
+        }
+        if original.operation not in handlers:
+            raise ValueError(f"Unsupported retry operation: {original.operation}")
+
+        retry_job = self.job_store.create(
+            operation=original.operation,
+            config_path=original.config_path,
+            attempt=original.attempt + 1,
+            retry_of=original.job_id,
+        )
+        retry_job.message = f"Retrying job {original.job_id}."
+        self.job_store.write(retry_job)
+        return self._run_job(retry_job, handlers[original.operation], original.config_path)
+
     def start_training_job_async(self, config_path: str | Path) -> JobRecord:
+        config_key = str(resolve_repo_path(config_path))
+        with self._async_lock:
+            active_job_id = self._active_training_jobs.get(config_key)
+            if active_job_id is not None:
+                active_job = self.job_store.read(active_job_id)
+                if active_job.state == "running":
+                    raise ValueError(
+                        f"An asynchronous training job is already running for config {config_path}: {active_job_id}"
+                    )
+                self._active_training_jobs.pop(config_key, None)
+
         context = self._prepare_context(config_path)
         job = self.job_store.create(operation="train", config_path=str(config_path))
         job.state = "running"
@@ -408,6 +451,8 @@ class TrainingService:
             "log_dir": str(context.log_dir),
         }
         self.job_store.write(job)
+        with self._async_lock:
+            self._active_training_jobs[config_key] = job.job_id
 
         def worker() -> None:
             try:
@@ -423,6 +468,10 @@ class TrainingService:
                 if failure_summary_path.exists():
                     job.failure_summary_path = str(failure_summary_path)
                 self.job_store.write(job)
+            finally:
+                with self._async_lock:
+                    if self._active_training_jobs.get(config_key) == job.job_id:
+                        self._active_training_jobs.pop(config_key, None)
 
         threading.Thread(target=worker, daemon=True, name=f"training-job-{job.job_id}").start()
         return job

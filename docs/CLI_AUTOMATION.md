@@ -7,6 +7,7 @@ python -m tensor_training_core.cli dataset import-coco --config <config>
 python -m tensor_training_core.cli dataset prepare --config <config>
 python -m tensor_training_core.cli train run --config <config>
 python -m tensor_training_core.cli train status --job-id <job_id>
+python -m tensor_training_core.cli job retry --job-id <job_id>
 python -m tensor_training_core.cli evaluate run --config <config>
 python -m tensor_training_core.cli export tflite --config <config>
 python -m tensor_training_core.cli export mobile --config <config>
@@ -34,5 +35,6 @@ When the command triggers a run-scoped operation such as training or export, the
 1. Prepare dataset
 2. Train
 3. Read status or artifact metadata
-4. Export
-5. Package mobile bundle
+4. Retry a failed job when needed
+5. Export
+6. Package mobile bundle

@@ -13,6 +13,7 @@ LOGS_DIR = ARTIFACTS_DIR / "logs"
 EXPERIMENTS_DIR = ARTIFACTS_DIR / "experiments"
 REPORTS_DIR = ARTIFACTS_DIR / "reports"
 JOBS_DIR = ARTIFACTS_DIR / "jobs"
+MODELS_DIR = ARTIFACTS_DIR / "models"
 
 
 def ensure_directory(path: Path) -> Path:

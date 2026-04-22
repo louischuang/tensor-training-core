@@ -38,6 +38,11 @@ def build_parser() -> argparse.ArgumentParser:
     train_status = train_sub.add_parser("status")
     train_status.add_argument("--job-id", required=True)
 
+    job = subparsers.add_parser("job")
+    job_sub = job.add_subparsers(dest="command", required=True)
+    job_retry = job_sub.add_parser("retry")
+    job_retry.add_argument("--job-id", required=True)
+
     evaluate = subparsers.add_parser("evaluate")
     evaluate_sub = evaluate.add_subparsers(dest="command", required=True)
     evaluate_run = evaluate_sub.add_parser("run")
@@ -98,6 +103,17 @@ def main() -> None:
     if args.group == "train" and args.command == "status":
         job = service.get_job_status(args.job_id)
         logger.info("cli_command_completed command=%s job_id=%s state=%s", cli_command, job.job_id, job.state)
+        _emit({"job": _serialize_job(job)})
+        return
+    if args.group == "job" and args.command == "retry":
+        job = service.retry_job(args.job_id)
+        logger.info(
+            "cli_command_completed command=%s job_id=%s state=%s retry_of=%s",
+            cli_command,
+            job.job_id,
+            job.state,
+            job.retry_of,
+        )
         _emit({"job": _serialize_job(job)})
         return
     if args.group == "evaluate" and args.command == "run":

@@ -15,6 +15,8 @@ class FakeJob:
     state: str
     message: str
     config_path: str = "configs/example.yaml"
+    attempt: int = 1
+    retry_of: str = ""
     outputs: dict[str, str] = field(default_factory=dict)
     failure_summary_path: str = ""
 
@@ -72,6 +74,22 @@ class FakeService:
     def get_job_log_path(self, job_id: str) -> Path:
         return self.log_path
 
+    def retry_job(self, job_id: str) -> FakeJob:
+        return FakeJob(
+            job_id="job_retry_123",
+            operation="prepare_dataset",
+            state="completed",
+            message="Dataset preparation completed.",
+            attempt=2,
+            retry_of=job_id,
+            outputs={"manifest_path": "artifacts/retried_manifest.jsonl"},
+        )
+
+
+class FakeAsyncConflictService(FakeService):
+    def start_training_job_async(self, config_path: str) -> FakeJob:
+        raise ValueError("An asynchronous training job is already running for config configs/example.yaml: job_async_123")
+
 
 def test_health_endpoint() -> None:
     app = create_app()
@@ -120,6 +138,17 @@ def test_training_job_async_endpoint_returns_running_job() -> None:
     assert payload["job"]["state"] == "running"
 
 
+def test_training_job_async_endpoint_returns_conflict_for_duplicate_config() -> None:
+    app = create_app()
+    app.state.service = FakeAsyncConflictService()
+    client = TestClient(app)
+
+    response = client.post("/training/jobs/async", json={"config_path": "configs/example.yaml"})
+
+    assert response.status_code == 409
+    assert "already running" in response.json()["detail"]
+
+
 def test_training_logs_endpoint_returns_log_lines() -> None:
     app = create_app()
     app.state.service = FakeService()
@@ -133,6 +162,20 @@ def test_training_logs_endpoint_returns_log_lines() -> None:
     assert payload["available"] is True
     assert payload["line_count"] == 2
     assert payload["lines"][0]["logger"] == "training"
+
+
+def test_job_retry_endpoint_returns_new_attempt() -> None:
+    app = create_app()
+    app.state.service = FakeService()
+    client = TestClient(app)
+
+    response = client.post("/training/jobs/job_test_123/retry")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["job"]["job_id"] == "job_retry_123"
+    assert payload["job"]["attempt"] == 2
+    assert payload["job"]["retry_of"] == "job_test_123"
 
 
 def test_training_logs_stream_endpoint_returns_sse_events() -> None:

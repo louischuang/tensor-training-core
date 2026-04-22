@@ -19,6 +19,8 @@ class JobRecord:
     operation: str
     config_path: str
     state: str
+    attempt: int = 1
+    retry_of: str = ""
     message: str = ""
     created_at: str = field(default_factory=_utc_now)
     updated_at: str = field(default_factory=_utc_now)
@@ -30,12 +32,21 @@ class JobStore:
     def __init__(self, root: Path | None = None) -> None:
         self.root = ensure_directory(root or JOBS_DIR)
 
-    def create(self, operation: str, config_path: str) -> JobRecord:
+    def create(
+        self,
+        operation: str,
+        config_path: str,
+        *,
+        attempt: int = 1,
+        retry_of: str = "",
+    ) -> JobRecord:
         job = JobRecord(
             job_id=f"job_{uuid4().hex[:12]}",
             operation=operation,
             config_path=config_path,
             state="queued",
+            attempt=attempt,
+            retry_of=retry_of,
             message="Job queued.",
         )
         self.write(job)

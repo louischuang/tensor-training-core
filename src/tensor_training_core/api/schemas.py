@@ -24,6 +24,8 @@ class JobPayload(BaseModel):
     operation: str = Field(..., examples=["train"])
     config_path: str = Field(..., examples=["configs/experiments/train_tensorflow_esp32_cam_dev.yaml"])
     state: str = Field(..., examples=["completed"])
+    attempt: int = Field(..., examples=[1])
+    retry_of: str = Field(..., examples=[""])
     message: str = Field(..., examples=["tensorflow training completed."])
     outputs: dict[str, str] = Field(
         ...,
@@ -46,6 +48,8 @@ class JobPayload(BaseModel):
                     "operation": "train",
                     "config_path": "configs/experiments/train_tensorflow_esp32_cam_dev.yaml",
                     "state": "completed",
+                    "attempt": 1,
+                    "retry_of": "",
                     "message": "tensorflow training completed.",
                     "outputs": {
                         "checkpoint_path": "/workspace/artifacts/experiments/train_tensorflow_esp32_cam_dev/20260421T233523Z_9991da53/checkpoints/latest.keras",
@@ -72,6 +76,8 @@ class JobEnvelope(BaseModel):
                         "operation": "train",
                         "config_path": "configs/experiments/train_tensorflow_esp32_cam_dev.yaml",
                         "state": "completed",
+                        "attempt": 1,
+                        "retry_of": "",
                         "message": "tensorflow training completed.",
                         "outputs": {
                             "checkpoint_path": "/workspace/artifacts/experiments/train_tensorflow_esp32_cam_dev/20260421T233523Z_9991da53/checkpoints/latest.keras",

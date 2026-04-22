@@ -64,9 +64,13 @@ Response:
 
 - `POST /training/jobs/async`
 - Purpose: start a background training job and immediately return `job_id`, `run_id`, and `log_dir`
+- Note: returns `409 Conflict` if the same config already has a running async training job
 
 - `GET /training/jobs/{job_id}`
 - Purpose: read a stored training job record
+
+- `POST /training/jobs/{job_id}/retry`
+- Purpose: create a new retry attempt from a completed or failed job
 
 - `GET /training/jobs/{job_id}/logs`
 - Purpose: read the latest training log lines as JSON
@@ -143,16 +147,31 @@ Example:
 }
 ```
 
+### `409 Conflict`
+
+Returned when an async training request duplicates an already running async job for the same config.
+
+Example:
+
+```json
+{
+  "detail": "An asynchronous training job is already running for config configs/example.yaml: job_async_123"
+}
+```
+
 ## Notes For Third-Party Integrators
 
 - Treat `job_id` as the stable lookup key for follow-up reads.
+- `attempt` and `retry_of` let you follow retry lineage across repeated runs.
 - Treat `outputs` as the authoritative source of generated file paths.
 - For API request tracing, provide an `x-request-id` header.
 - Request lifecycle events are stored in `artifacts/logs/api/requests.jsonl`.
 - `POST /training/jobs` is still synchronous and does not return until training completes.
 - For live progress, use `POST /training/jobs/async` and then call:
   - `GET /training/jobs/{job_id}` for state polling
+  - `POST /training/jobs/{job_id}/retry` when you need a new attempt from a failed or completed job
   - `GET /training/jobs/{job_id}/logs` for snapshot reads
   - `GET /training/jobs/{job_id}/logs/stream` for SSE-based log streaming
 - Export responses now include `model_card_path` and `license_metadata_path` so downstream platforms can carry model usage notes and license caveats with the artifact bundle.
 - Export responses also include `benchmark_report_path` with model size, latency, and estimated working-set information for each quantization target.
+- Retrying an `export_tflite` job is the supported recovery path for export failures; it reruns export against the same experiment config and resolves the latest available checkpoint again.

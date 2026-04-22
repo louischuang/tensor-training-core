@@ -56,6 +56,7 @@ tests/                   Unit tests
 - `internal manifest`: normalized project-owned metadata generated from an imported dataset
 - `job`: a tracked execution record stored under `artifacts/jobs/`
 - `artifact`: generated files stored under `artifacts/experiments/`, `artifacts/reports/`, and `artifacts/logs/`
+- `model registry`: versioned exported-model descriptors stored under `artifacts/models/`
 
 ## Current Implemented Features
 
@@ -87,8 +88,12 @@ tests/                   Unit tests
 - SavedModel export
 - TFLite export for `float32`, `float16`, and `int8`
 - `label.txt` generation
+- `MODEL_CARD.md`, `license_metadata.json`, and `benchmark_report.json`
+- model registry contract and versioned model index
 - mobile bundles for iOS and Android
 - integration assumptions and bundle verification files
+- Android minimal integration example
+- iOS minimal integration example
 
 ### Interfaces
 
@@ -155,6 +160,7 @@ tensor-training-core dataset import-coco --config <path>
 tensor-training-core dataset prepare --config <path>
 tensor-training-core train run --config <path>
 tensor-training-core train status --job-id <id>
+tensor-training-core job retry --job-id <id>
 tensor-training-core evaluate run --config <path>
 tensor-training-core export tflite --config <path>
 tensor-training-core export mobile --config <path>
@@ -184,6 +190,7 @@ POST /datasets/prepare
 POST /training/jobs
 POST /training/jobs/async
 GET  /training/jobs/{job_id}
+POST /training/jobs/{job_id}/retry
 GET  /training/jobs/{job_id}/logs
 GET  /training/jobs/{job_id}/logs/stream
 POST /exports/tflite
@@ -222,8 +229,11 @@ For live training progress over HTTP, prefer:
 
 - `POST /training/jobs/async`
 - `GET /training/jobs/{job_id}`
+- `POST /training/jobs/{job_id}/retry`
 - `GET /training/jobs/{job_id}/logs`
 - `GET /training/jobs/{job_id}/logs/stream`
+
+The async training endpoint now rejects duplicate background runs for the same config while an earlier async job is still running.
 
 ## Important Output Locations
 
@@ -231,6 +241,7 @@ For live training progress over HTTP, prefer:
 - Experiment runs: `artifacts/experiments/<experiment_id>/<run_id>/`
 - Reports: `artifacts/reports/<experiment_id>/<run_id>/`
 - Logs: `artifacts/logs/<run_id>/`
+- Model registry: `artifacts/models/`
 - API request log: `artifacts/logs/api/requests.jsonl`
 
 Typical generated outputs include:
@@ -245,6 +256,7 @@ Typical generated outputs include:
 - `MODEL_CARD.md`
 - `license_metadata.json`
 - `benchmark_report.json`
+- model registry descriptors and version indexes
 - mobile bundle files
 - structured logs and failure summaries
 
@@ -258,7 +270,9 @@ Typical generated outputs include:
 - [COCO Import Flow](./docs/COCO_IMPORT_FLOW.md)
 - [Internal Manifest Format](./docs/INTERNAL_MANIFEST.md)
 - [Artifact Layout](./docs/ARTIFACT_LAYOUT.md)
-- [Mobile Deployment Workflow](./docs/MOBILE_DEPLOYMENT.md)
+- [Android Minimal Integration](./docs/ANDROID_MINIMAL_INTEGRATION.md)
+- [iOS Minimal Integration](./docs/IOS_MINIMAL_INTEGRATION.md)
+- [Mobile Deployment](./docs/MOBILE_DEPLOYMENT.md)
 - [API Workflow](./docs/API_WORKFLOW.md)
 - [CLI Automation Workflow](./docs/CLI_AUTOMATION.md)
 - [Skill Usage Guide](./docs/SKILL_USAGE.md)

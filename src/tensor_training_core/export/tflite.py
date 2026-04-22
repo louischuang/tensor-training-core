@@ -17,6 +17,7 @@ from tensor_training_core.export.compliance import (
     write_license_metadata,
     write_model_card,
 )
+from tensor_training_core.export.registry import register_model_version
 from tensor_training_core.data.manifest.reader import read_manifest
 from tensor_training_core.export.labels import write_label_txt
 from tensor_training_core.export.metadata import build_export_metadata, write_json_file
@@ -167,6 +168,17 @@ def export_tflite_model(
         quantized_outputs["label_txt_path"] = str(label_txt_path)
         quantized_outputs["model_card_path"] = str(model_card_path)
         quantized_outputs["license_metadata_path"] = str(license_metadata_path)
+        registry_outputs = register_model_version(
+            context=context,
+            model_config=model_config,
+            dataset_config=dataset_config,
+            export_outputs=quantized_outputs,
+        )
+        logger.info(
+            "export_registry_completed model_registry_version_path=%s",
+            registry_outputs["model_registry_version_path"],
+        )
+        quantized_outputs.update(registry_outputs)
         quantized_outputs["failure_summary_path"] = ""
         return quantized_outputs
     except Exception as exc:

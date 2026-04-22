@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from tensor_training_core.api.app import create_app
@@ -26,6 +27,16 @@ def test_tiny_coco_end_to_end_pipeline() -> None:
     assert Path(prepared.outputs["quality_report_path"]).exists()
     assert Path(trained.outputs["checkpoint_path"]).exists()
     assert Path(trained.outputs["summary_path"]).exists()
+    try:
+        pytest.importorskip("tensorflow")
+        exported = service.export_tflite(SMOKE_CONFIG)
+    except pytest.skip.Exception:
+        return
+
+    assert exported.status == "completed"
+    assert Path(exported.outputs["model_registry_version_path"]).exists()
+    assert Path(exported.outputs["model_registry_index_path"]).exists()
+    assert Path(exported.outputs["global_model_registry_index_path"]).exists()
 
 
 def test_phase2_api_smoke_with_real_service() -> None:
@@ -45,6 +56,12 @@ def test_phase2_api_smoke_with_real_service() -> None:
     status = client.get(f"/training/jobs/{job_id}")
     assert status.status_code == 200
     assert status.json()["job"]["job_id"] == job_id
+
+    retry = client.post(f"/training/jobs/{job_id}/retry")
+    assert retry.status_code == 200
+    retry_payload = retry.json()
+    assert retry_payload["job"]["retry_of"] == job_id
+    assert retry_payload["job"]["attempt"] == 2
 
     artifacts = client.get(f"/artifacts/{job_id}")
     assert artifacts.status_code == 200
