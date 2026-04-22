@@ -130,6 +130,14 @@ docker compose -f docker/docker-compose.cuda.yml build
 docker compose -f docker/docker-compose.cuda.yml run --rm trainer
 ```
 
+To start the browser-testable API UI in Docker:
+
+```bash
+docker compose -f docker/docker-compose.cuda.yml up api
+```
+
+For an x86 NVIDIA host, the compose file defaults to `linux/amd64`. You can override it explicitly with `DOCKER_PLATFORM=linux/amd64` if needed.
+
 ### 2. Prepare a Dataset
 
 Example:

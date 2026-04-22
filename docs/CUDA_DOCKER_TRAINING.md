@@ -50,6 +50,18 @@ Or with Docker Compose:
 docker compose -f docker/docker-compose.cuda.yml run --rm trainer
 ```
 
+Start the API and browser-facing test UI with Docker Compose:
+
+```bash
+docker compose -f docker/docker-compose.cuda.yml up api
+```
+
+Then open:
+
+- `http://127.0.0.1:8000/docs`
+- `http://127.0.0.1:8000/redoc`
+- `http://127.0.0.1:8000/dashboard`
+
 Quick GPU check inside the container:
 
 ```bash
@@ -69,17 +81,26 @@ python -m tensor_training_core.cli export mobile --config configs/experiments/tr
 
 The compose service is configured with:
 
-- `platform: linux/amd64`
+- `platform: ${DOCKER_PLATFORM:-linux/amd64}`
 - `gpus: all`
 - `NVIDIA_VISIBLE_DEVICES=all`
 - `NVIDIA_DRIVER_CAPABILITIES=compute,utility`
 - `TF_FORCE_GPU_ALLOW_GROWTH=true`
+- `api` publishes `${API_PORT:-8000}:8000`
 
 If you need a different TensorFlow GPU base image, override:
 
 ```bash
 TF_GPU_IMAGE=tensorflow/tensorflow:latest-gpu docker compose -f docker/docker-compose.cuda.yml build
 ```
+
+If you need to override the container platform explicitly:
+
+```bash
+DOCKER_PLATFORM=linux/amd64 docker compose -f docker/docker-compose.cuda.yml up api
+```
+
+For Apple Silicon local UI-only smoke checks, you can override the platform at runtime if you maintain a compatible local image for that architecture.
 
 ## Smoke Test
 

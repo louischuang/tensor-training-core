@@ -6,7 +6,7 @@ services:
       dockerfile: docker/Dockerfile.cuda
       args:
         TF_GPU_IMAGE: ${TF_GPU_IMAGE:-tensorflow/tensorflow:latest-gpu}
-    platform: linux/amd64
+    platform: ${DOCKER_PLATFORM:-linux/amd64}
     working_dir: /workspace
     volumes:
       - ..:/workspace
@@ -21,3 +21,26 @@ services:
     stdin_open: true
     tty: true
     command: ["bash"]
+
+  api:
+    image: tensor-training-core-tf:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cuda
+      args:
+        TF_GPU_IMAGE: ${TF_GPU_IMAGE:-tensorflow/tensorflow:latest-gpu}
+    platform: ${DOCKER_PLATFORM:-linux/amd64}
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+    environment:
+      PYTHONPATH: /workspace/src
+      TF_CPP_MIN_LOG_LEVEL: ${TF_CPP_MIN_LOG_LEVEL:-1}
+      TF_FORCE_GPU_ALLOW_GROWTH: ${TF_FORCE_GPU_ALLOW_GROWTH:-true}
+      NVIDIA_VISIBLE_DEVICES: ${NVIDIA_VISIBLE_DEVICES:-all}
+      NVIDIA_DRIVER_CAPABILITIES: ${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}
+    gpus: all
+    shm_size: "2gb"
+    ports:
+      - "${API_PORT:-8000}:8000"
+    command: ["python", "-m", "tensor_training_core.cli", "serve", "api", "--host", "0.0.0.0", "--port", "8000"]
