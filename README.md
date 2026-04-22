@@ -250,6 +250,15 @@ Typical generated outputs include:
 - [Architecture Plan](./ARCHITECTURE.md)
 - [TODO List](./TODO.md)
 - [Agent Skill Contract](./SKILL.md)
+- [Local macOS Setup](./docs/LOCAL_MACOS_SETUP.md)
+- [CUDA Docker Training](./docs/CUDA_DOCKER_TRAINING.md)
+- [COCO Import Flow](./docs/COCO_IMPORT_FLOW.md)
+- [Internal Manifest Format](./docs/INTERNAL_MANIFEST.md)
+- [Artifact Layout](./docs/ARTIFACT_LAYOUT.md)
+- [Mobile Deployment Workflow](./docs/MOBILE_DEPLOYMENT.md)
+- [API Workflow](./docs/API_WORKFLOW.md)
+- [CLI Automation Workflow](./docs/CLI_AUTOMATION.md)
+- [Skill Usage Guide](./docs/SKILL_USAGE.md)
 
 ## Dataset and License Notes
 

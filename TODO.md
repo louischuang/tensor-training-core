@@ -151,24 +151,24 @@
 - [x] Add unit tests for COCO annotation conversion
 - [x] Add unit tests for internal manifest generation
 - [x] Add unit tests for bounding box validation
-- [ ] Add integration test for tiny COCO end-to-end pipeline
-- [ ] Add export smoke test
-- [ ] Add mobile bundle smoke test
-- [ ] Add phase-2 API smoke tests
-- [ ] Add phase-2 CLI contract tests for machine-readable output
-- [ ] Add baseline CI checks for lint, unit tests, integration smoke tests, and Docker smoke tests
+- [x] Add integration test for tiny COCO end-to-end pipeline
+- [x] Add export smoke test
+- [x] Add mobile bundle smoke test
+- [x] Add phase-2 API smoke tests
+- [x] Add phase-2 CLI contract tests for machine-readable output
+- [x] Add baseline CI checks for lint, unit tests, integration smoke tests, and Docker smoke tests
 
 ## Phase 16. Documentation
 
-- [ ] Document local macOS setup flow
-- [ ] Document CUDA Docker training flow
-- [ ] Document COCO dataset import flow
-- [ ] Document internal manifest format
-- [ ] Document experiment artifact layout
-- [ ] Document iOS / Android deployment workflow
-- [ ] Document phase-2 API usage workflow
-- [ ] Document phase-2 CLI automation workflow
-- [ ] Document phase-2 `SKILL.md` usage for third-party platforms and agents
+- [x] Document local macOS setup flow
+- [x] Document CUDA Docker training flow
+- [x] Document COCO dataset import flow
+- [x] Document internal manifest format
+- [x] Document experiment artifact layout
+- [x] Document iOS / Android deployment workflow
+- [x] Document phase-2 API usage workflow
+- [x] Document phase-2 CLI automation workflow
+- [x] Document phase-2 `SKILL.md` usage for third-party platforms and agents
 
 ## First End-to-End Milestone
 
@@ -195,8 +195,8 @@
 - [x] Add annotation quality checks and data cleaning reports
 - [x] Add standardized inference preprocessing / postprocessing deployment spec
 - [x] Add representative dataset planning for int8 quantization
-- [ ] Add structured logging, job status, and failure observability
-- [ ] Add baseline CI checks for lint, unit tests, integration smoke tests, and Docker smoke tests
+- [x] Add structured logging, job status, and failure observability
+- [x] Add baseline CI checks for lint, unit tests, integration smoke tests, and Docker smoke tests
 
 These items are already mapped into Phases 2, 4, 5, 6, 8, 9, 11, and 15 above and should be treated as committed scope candidates.
 

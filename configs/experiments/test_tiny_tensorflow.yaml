@@ -1,0 +1,10 @@
+dataset:
+  config_path: configs/datasets/coco_detection.yaml
+model:
+  config_path: configs/models/ssd_mobilenet_v2_fpnlite_320.yaml
+training:
+  config_path: configs/training/tensorflow_tiny.yaml
+runtime:
+  target: docker
+  dataset_version: fixture-v1
+  experiment_id: tiny_tensorflow_smoke

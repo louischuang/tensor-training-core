@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import traceback
-from pathlib import Path
 
 from tensor_training_core.interfaces.dto import RunContext
 from tensor_training_core.mobile.android.bundle_writer import write_android_bundle

@@ -1,0 +1,17 @@
+training:
+  backend: tensorflow
+  seed: 42
+  batch_size: 1
+  epochs: 1
+  learning_rate: 0.0003
+  runtime: docker
+  experiment_name: tiny_tensorflow_smoke
+  checkpoint_name: latest.keras
+  max_samples: 1
+  tensorboard_enabled: false
+  augmentation:
+    enabled: false
+    horizontal_flip_prob: 0.0
+    brightness_delta: 0.0
+    contrast_min: 1.0
+    contrast_max: 1.0
