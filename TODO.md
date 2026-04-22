@@ -118,7 +118,7 @@
 - [x] Add `artifact list` command
 - [x] Add `artifact describe` command
 - [x] Add `serve api` command
-- [ ] Extend logging with CLI-specific correlation fields
+- [x] Extend logging with CLI-specific correlation fields
 - [x] Add shell wrappers in `scripts/`
 
 ## Phase 13. HTTP API
